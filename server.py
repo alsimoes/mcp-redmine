@@ -119,40 +119,229 @@ def listar_issues(
     projeto_identifier: str = "",
     status: str = "open",
     limite: int = 25,
+    tracker_id: int = 0,
+    categoria_id: int = 0,
+    versao_id: int = 0,
+    responsavel_id: int = 0,
+    autor_id: int = 0,
+    tarefa_pai_id: int = 0,
+    assunto_contem: str = "",
+    criada_apos: str = "",
+    criada_antes: str = "",
+    atualizada_apos: str = "",
+    campos_personalizados: dict | None = None,
+    ordenar_por: str = "",
+    deslocamento: int = 0,
+    consulta_id: int = 0,
 ) -> str:
     """
-    Lista issues (tarefas/chamados) do Redmine.
+    Lista issues do Redmine, com filtros.
 
     Args:
-        projeto_identifier: identificador do projeto (ex: 'meu-projeto'). Vazio = todos os projetos.
-        status: 'open', 'closed' ou '*' (todos).
-        limite: número máximo de issues retornadas.
+        projeto_identifier: identificador do projeto. Vazio = todos os projetos.
+        status: 'open', 'closed', '*' (todos), ou o ID de um status específico.
+        limite: máximo de issues por página. O Redmine limita a 100.
+        tracker_id: filtra por tipo de tarefa (use listar_trackers).
+        categoria_id: filtra por categoria (use listar_categorias_projeto).
+        versao_id: filtra por versão prevista (use listar_versoes_projeto).
+        responsavel_id: filtra por responsável.
+        autor_id: filtra por quem criou.
+        tarefa_pai_id: devolve as sub-tarefas de uma issue.
+        assunto_contem: texto contido no assunto (busca parcial).
+        criada_apos: AAAA-MM-DD, issues criadas nesta data ou depois.
+        criada_antes: AAAA-MM-DD, issues criadas nesta data ou antes.
+        atualizada_apos: AAAA-MM-DD, issues alteradas nesta data ou depois.
+        campos_personalizados: mapa {id_do_campo: valor}, ex: {"1": "8"}.
+        ordenar_por: campo e direção, ex: 'priority:desc', 'updated_on:desc',
+            'id:asc'. Vários separados por vírgula.
+        deslocamento: quantas issues pular — use com 'limite' para paginar.
+        consulta_id: executa uma consulta salva (use listar_consultas). Quando
+            informado, os demais filtros são ignorados pelo Redmine.
+
+    Devolve o total de issues que casam com o filtro, não só as desta página,
+    para que dê para saber se falta paginar.
     """
-    params = {"status_id": status, "limit": limite}
+    params: dict = {"limit": limite}
+
+    if consulta_id:
+        params["query_id"] = consulta_id
+    else:
+        params["status_id"] = status
+        if tracker_id:
+            params["tracker_id"] = tracker_id
+        if categoria_id:
+            params["category_id"] = categoria_id
+        if versao_id:
+            params["fixed_version_id"] = versao_id
+        if responsavel_id:
+            params["assigned_to_id"] = responsavel_id
+        if autor_id:
+            params["author_id"] = autor_id
+        if tarefa_pai_id:
+            params["parent_id"] = tarefa_pai_id
+        if assunto_contem:
+            params["subject"] = f"~{assunto_contem}"
+        if criada_apos and criada_antes:
+            params["created_on"] = f"><{criada_apos}|{criada_antes}"
+        elif criada_apos:
+            params["created_on"] = f">={criada_apos}"
+        elif criada_antes:
+            params["created_on"] = f"<={criada_antes}"
+        if atualizada_apos:
+            params["updated_on"] = f">={atualizada_apos}"
+        if campos_personalizados:
+            for cid, valor in campos_personalizados.items():
+                params[f"cf_{cid}"] = valor
+
     if projeto_identifier:
         params["project_id"] = projeto_identifier
+    if ordenar_por:
+        params["sort"] = ordenar_por
+    if deslocamento:
+        params["offset"] = deslocamento
 
     data = _request("GET", "/issues.json", params=params)
+
     issues = [
         {
             "id": i["id"],
             "assunto": i["subject"],
+            "tracker": i.get("tracker", {}).get("name"),
             "status": i["status"]["name"],
             "prioridade": i["priority"]["name"],
+            "categoria": i.get("category", {}).get("name"),
+            "versao": i.get("fixed_version", {}).get("name"),
             "projeto": i["project"]["name"],
             "atribuido_a": i.get("assigned_to", {}).get("name", "-"),
             "atualizado_em": i.get("updated_on"),
         }
         for i in data.get("issues", [])
     ]
-    return json.dumps(issues, ensure_ascii=False, indent=2)
+
+    total = data.get("total_count", len(issues))
+    devolvidas = len(issues)
+    restantes = max(0, total - deslocamento - devolvidas)
+
+    return json.dumps(
+        {
+            "total": total,
+            "devolvidas": devolvidas,
+            "deslocamento": deslocamento,
+            "restantes": restantes,
+            "issues": issues,
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
 
 
 @mcp.tool()
-def detalhar_issue(issue_id: int) -> str:
-    """Retorna todos os detalhes de uma issue específica, incluindo descrição e comentários."""
-    data = _request("GET", f"/issues/{issue_id}.json?include=journals")
+def detalhar_issue(issue_id: int, incluir_historico: bool = True) -> str:
+    """
+    Retorna todos os detalhes de uma issue: descrição, anexos, relações,
+    observadores e sub-tarefas.
+
+    Args:
+        issue_id: ID da issue.
+        incluir_historico: traz também os comentários e o registro de alterações.
+            Desligue em issues longas, quando só interessam os campos atuais.
+    """
+    partes = ["attachments", "relations", "watchers", "children"]
+    if incluir_historico:
+        partes.insert(0, "journals")
+
+    try:
+        data = _request("GET", f"/issues/{issue_id}.json?include={','.join(partes)}")
+    except Exception as exc:
+        return f"Erro ao detalhar issue #{issue_id}: {_erro_redmine(exc)}"
+
     return json.dumps(data.get("issue", {}), ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
+def atualizar_issues_em_lote(
+    issue_ids: list[int],
+    status_id: int = 0,
+    notas: str = "",
+    prioridade_id: int = 0,
+    tracker_id: int = 0,
+    categoria_id: int = 0,
+    versao_id: int = 0,
+    responsavel_id: int = 0,
+    data_inicio: str = "",
+    data_prevista: str = "",
+    percentual_concluido: int = -1,
+    horas_estimadas: float = -1.0,
+    campos_personalizados: dict | None = None,
+) -> str:
+    """
+    Aplica a mesma alteração a várias issues de uma vez.
+
+    Serve para o caso em que a mudança é idêntica — mover um conjunto de cards
+    de status, corrigir a categoria de um lote, atribuir uma versão. Para criar
+    issues, não existe equivalente: cada uma tem conteúdo próprio, e agrupá-las
+    numa chamada não economizaria nada.
+
+    Não aborta no primeiro erro: tenta todas e devolve o resultado individual.
+
+    Args:
+        issue_ids: IDs das issues a alterar.
+        notas: comentário acrescentado ao histórico de cada uma.
+        Demais argumentos: iguais aos de atualizar_issue, com os mesmos
+            sentinelas de "não altera" (0, string vazia, -1).
+    """
+    if not issue_ids:
+        return "Informe ao menos uma issue."
+
+    campos = {}
+    if status_id:
+        campos["status_id"] = status_id
+    if notas:
+        campos["notes"] = notas
+    if prioridade_id:
+        campos["priority_id"] = prioridade_id
+    if tracker_id:
+        campos["tracker_id"] = tracker_id
+
+    campos.update(
+        _campos_opcionais_issue(
+            categoria_id=categoria_id,
+            versao_id=versao_id,
+            responsavel_id=responsavel_id,
+            data_inicio=data_inicio,
+            data_prevista=data_prevista,
+            percentual_concluido=percentual_concluido,
+            horas_estimadas=horas_estimadas,
+            campos_personalizados=campos_personalizados,
+        )
+    )
+
+    if not campos:
+        return "Nada a atualizar: nenhum campo foi informado."
+
+    resultados, ok, falhas = [], 0, 0
+    for issue_id in issue_ids:
+        try:
+            _request("PUT", f"/issues/{issue_id}.json", json={"issue": campos})
+            resultados.append({"issue": issue_id, "resultado": "ok"})
+            ok += 1
+        except Exception as exc:
+            resultados.append(
+                {"issue": issue_id, "resultado": "erro", "detalhe": _erro_redmine(exc)}
+            )
+            falhas += 1
+
+    return json.dumps(
+        {
+            "campos_aplicados": sorted(k for k in campos if k != "notes"),
+            "tentadas": len(issue_ids),
+            "atualizadas": ok,
+            "falhas": falhas,
+            "detalhes": resultados if falhas else "todas atualizadas",
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
 
 
 def _campos_opcionais_issue(
@@ -674,6 +863,7 @@ def criar_ou_editar_pagina_wiki(
     titulo: str,
     texto: str,
     comentario: str = "",
+    pagina_pai: str = "",
 ) -> str:
     """
     Cria uma nova página de wiki ou atualiza uma existente (o Redmine usa o
@@ -682,17 +872,84 @@ def criar_ou_editar_pagina_wiki(
     Args:
         projeto_identifier: identificador do projeto.
         titulo: título da página (ex: 'Pagina_inicial').
-        texto: conteúdo em formato Textile ou Markdown (depende da config do Redmine).
+        texto: conteúdo em Markdown ou Textile, conforme a configuração da
+            instância (Administração -> Configurações -> Geral -> Formato do texto).
         comentario: comentário sobre a edição (aparece no histórico da página).
+        pagina_pai: título da página que deve ser a mãe desta, para aninhar no
+            índice do wiki. Vazio = não altera o aninhamento atual; numa página
+            nova, deixa na raiz.
     """
-    payload = {
-        "wiki_page": {
-            "text": texto,
-            "comments": comentario,
-        }
+    wiki_page = {"text": texto, "comments": comentario}
+    if pagina_pai:
+        wiki_page["parent_title"] = pagina_pai
+
+    try:
+        _request(
+            "PUT",
+            f"/projects/{projeto_identifier}/wiki/{titulo}.json",
+            json={"wiki_page": wiki_page},
+        )
+    except Exception as exc:
+        return f"Erro ao gravar a página '{titulo}': {_erro_redmine(exc)}"
+
+    aninhamento = f", aninhada sob '{pagina_pai}'" if pagina_pai else ""
+    return f"Página de wiki '{titulo}' gravada em '{projeto_identifier}'{aninhamento}."
+
+
+@mcp.tool()
+def anexar_arquivo_wiki(
+    projeto_identifier: str,
+    titulo: str,
+    caminho_arquivo: str,
+    comentario: str = "",
+    nome_arquivo: str = "",
+) -> str:
+    """
+    Anexa um arquivo a uma página de wiki existente.
+
+    O texto da página é preservado: a ferramenta lê o conteúdo atual e regrava
+    junto com o anexo, porque o endpoint do Redmine substitui a página inteira.
+
+    O caminho é lido na máquina onde este servidor MCP roda.
+
+    Args:
+        projeto_identifier: identificador do projeto.
+        titulo: título da página que vai receber o anexo.
+        caminho_arquivo: caminho completo do arquivo na máquina do servidor.
+        comentario: comentário da edição, no histórico da página.
+        nome_arquivo: nome a exibir (vazio = usa o nome do arquivo).
+    """
+    try:
+        atual = _request("GET", f"/projects/{projeto_identifier}/wiki/{titulo}.json")
+    except Exception as exc:
+        return f"Erro ao ler a página '{titulo}': {_erro_redmine(exc)}"
+
+    texto_atual = atual.get("wiki_page", {}).get("text", "")
+
+    try:
+        token, nome, tipo = _enviar_binario(caminho_arquivo, nome_arquivo)
+    except Exception as exc:
+        return f"Erro no upload: {_erro_redmine(exc)}"
+
+    wiki_page = {
+        "text": texto_atual,
+        "comments": comentario or f"Anexo '{nome}' adicionado",
+        "uploads": [{"token": token, "filename": nome, "content_type": tipo}],
     }
-    _request("PUT", f"/projects/{projeto_identifier}/wiki/{titulo}.json", json=payload)
-    return f"Página de wiki '{titulo}' criada/atualizada com sucesso em '{projeto_identifier}'."
+
+    try:
+        _request(
+            "PUT",
+            f"/projects/{projeto_identifier}/wiki/{titulo}.json",
+            json={"wiki_page": wiki_page},
+        )
+    except Exception as exc:
+        return (
+            f"Upload de '{nome}' funcionou, mas falhou ao vincular à página "
+            f"'{titulo}': {_erro_redmine(exc)}. O token expira sozinho."
+        )
+
+    return f"'{nome}' ({tipo}) anexado à página '{titulo}'."
 
 
 @mcp.tool()
@@ -1432,7 +1689,32 @@ def anexar_arquivo_issue(
             f"#{issue_id}: {_erro_redmine(exc)}. O token expira sozinho."
         )
 
-    return f"'{nome}' ({tipo}) anexado à issue #{issue_id}."
+    # O PUT devolve 204 sem corpo, então o ID do anexo só aparece relendo a
+    # issue. Sem ele não há como chamar detalhar_anexo nem excluir_anexo depois.
+    anexo_id = None
+    try:
+        depois = _request("GET", f"/issues/{issue_id}.json?include=attachments")
+        candidatos = [
+            a for a in depois.get("issue", {}).get("attachments", [])
+            if a.get("filename") == nome
+        ]
+        if candidatos:
+            anexo_id = max(candidatos, key=lambda a: a["id"])["id"]
+    except Exception:
+        pass  # o anexo está lá; só não conseguimos confirmar o ID
+
+    return json.dumps(
+        {
+            "issue": issue_id,
+            "anexo_id": anexo_id,
+            "nome": nome,
+            "tipo": tipo,
+            "observacao": None if anexo_id else
+                "anexo criado, mas não consegui reler o ID — use detalhar_issue",
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
 
 
 @mcp.tool()

@@ -88,7 +88,25 @@ claude mcp list
 | `detalhar_issue` | Mostra detalhes e histórico de uma issue |
 | `criar_issue` | Cria uma nova issue em um projeto |
 | `atualizar_issue` | Atualiza qualquer campo da issue, ou adiciona comentário |
+| `atualizar_issues_em_lote` | Aplica a mesma alteração a várias issues |
 | `excluir_issue` | Exclui uma issue permanentemente |
+
+`listar_issues` filtra por tracker, categoria, versão, responsável, autor,
+tarefa pai, texto no assunto, intervalo de datas e campo personalizado; ordena
+por qualquer campo; e pagina com `limite` + `deslocamento`. Também executa uma
+consulta salva via `consulta_id` — nesse caso o Redmine ignora os demais filtros.
+
+A resposta traz `total`, `devolvidas`, `deslocamento` e `restantes`, para dar
+para saber se falta paginar sem ter que adivinhar.
+
+`detalhar_issue` traz anexos, relações, observadores e sub-tarefas, além do
+histórico. O histórico pode ser desligado com `incluir_historico=False` em issues
+muito longas.
+
+`atualizar_issues_em_lote` existe porque corrigir a categoria de 30 issues não
+deveria custar 30 chamadas. Não aborta no primeiro erro — tenta todas e devolve o
+resultado individual. **Não há equivalente para criação**: cada issue tem
+conteúdo próprio, e agrupá-las numa chamada não economizaria nada.
 
 `criar_issue` e `atualizar_issue` aceitam, além do básico: `categoria_id`,
 `versao_id`, `responsavel_id`, `tarefa_pai_id`, `data_inicio`, `data_prevista`,
@@ -208,8 +226,15 @@ com 422, que aparece como erro daquele par sem afetar os demais.
 |---|---|
 | `listar_paginas_wiki` | Lista todas as páginas de wiki de um projeto |
 | `ler_pagina_wiki` | Lê o conteúdo de uma página (com suporte a versões antigas) |
-| `criar_ou_editar_pagina_wiki` | Cria ou atualiza uma página de wiki |
+| `criar_ou_editar_pagina_wiki` | Cria ou atualiza uma página, com aninhamento |
+| `anexar_arquivo_wiki` | Anexa um arquivo a uma página existente |
 | `excluir_pagina_wiki` | Exclui uma página de wiki |
+
+`criar_ou_editar_pagina_wiki` aceita `pagina_pai` para aninhar a página no índice
+do wiki. Sem isso, toda página nasce na raiz.
+
+`anexar_arquivo_wiki` relê o texto atual antes de gravar, porque o endpoint do
+Redmine substitui a página inteira — anexar sem esse cuidado apagaria o conteúdo.
 
 ### Time tracking (registro de horas)
 
@@ -230,11 +255,14 @@ com 422, que aparece como erro daquele par sem afetar os demais.
 | Ferramenta | O que faz |
 |---|---|
 | `anexar_arquivo_issue` | Envia um arquivo local e vincula à issue |
+| `anexar_arquivo_wiki` | Mesma coisa, para página de wiki |
 | `detalhar_anexo` | Nome, tamanho, tipo, autor e URL de download |
 | `excluir_anexo` | Exclui um anexo permanentemente |
 
 A API do Redmine exige duas etapas — `POST /uploads.json` para obter um token e
-depois vincular o token à issue. `anexar_arquivo_issue` faz as duas numa chamada.
+depois vincular o token à issue. `anexar_arquivo_issue` faz as duas numa chamada
+e devolve o `anexo_id`, que o `PUT` do Redmine não retorna: sem ele não haveria
+como chamar `detalhar_anexo` nem `excluir_anexo` depois.
 
 > **O caminho do arquivo é lido na máquina onde o servidor MCP roda**, não na de
 > quem chama a ferramenta. Em uso local isso é a mesma máquina; num cenário
