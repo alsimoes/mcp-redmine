@@ -1,0 +1,41 @@
+# Ambientes virtuais
+venv/
+.venv/
+env/
+ENV/
+
+# Bytecode e artefatos de build
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Segredos — a API key do Redmine dá acesso equivalente ao usuário dono dela.
+# A configuração canônica é o claude_desktop_config.json, fora deste repositório;
+# estes padrões existem para o caso de alguém preferir um .env local.
+.env
+.env.*
+!.env.example
+*.key
+secrets.json
+
+# Editores e IDEs
+.vscode/
+.idea/
+*.swp
+*~
+
+# Sistema operacional
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Logs e temporários
+*.log
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
