@@ -13,6 +13,7 @@ Configuração via variáveis de ambiente:
 import os
 import sys
 import json
+import mimetypes
 import requests
 from mcp.server.fastmcp import FastMCP
 
@@ -1321,6 +1322,381 @@ def criar_noticia(
     if data:
         return json.dumps(data.get("news", {}), ensure_ascii=False, indent=2)
     return f"Notícia '{titulo}' publicada em '{projeto_identifier}'."
+
+
+# ---------------------------------------------------------------------------
+# Anexos
+# ---------------------------------------------------------------------------
+
+# Limite defensivo. O Redmine tem o seu próprio, configurável em
+# Administração -> Configurações -> Arquivos; este aqui só evita descobrir o
+# limite depois de empurrar dezenas de megabytes pela rede.
+_TAMANHO_MAXIMO_UPLOAD = 50 * 1024 * 1024
+
+
+def _enviar_binario(caminho: str, nome_arquivo: str = "") -> tuple:
+    """
+    Envia um arquivo para /uploads.json e devolve (token, nome, tipo_mime).
+
+    Não passa pelo _request porque o upload exige Content-Type
+    application/octet-stream, enquanto o HEADERS global fixa application/json.
+
+    O caminho é resolvido na máquina onde este servidor MCP roda — não na do
+    agente que chama a ferramenta.
+    """
+    if not os.path.isfile(caminho):
+        raise RuntimeError(f"arquivo não encontrado: {caminho}")
+
+    tamanho = os.path.getsize(caminho)
+    if tamanho > _TAMANHO_MAXIMO_UPLOAD:
+        mb = tamanho / (1024 * 1024)
+        raise RuntimeError(
+            f"arquivo tem {mb:.1f} MB, acima do limite de "
+            f"{_TAMANHO_MAXIMO_UPLOAD // (1024 * 1024)} MB deste servidor"
+        )
+    if tamanho == 0:
+        raise RuntimeError("arquivo vazio — o Redmine recusa upload de 0 byte")
+
+    nome = nome_arquivo or os.path.basename(caminho)
+    tipo = mimetypes.guess_type(nome)[0] or "application/octet-stream"
+
+    cabecalhos = {
+        "X-Redmine-API-Key": REDMINE_API_KEY,
+        "Content-Type": "application/octet-stream",
+    }
+
+    try:
+        with open(caminho, "rb") as arquivo:
+            resp = requests.post(
+                f"{REDMINE_URL}/uploads.json",
+                headers=cabecalhos,
+                data=arquivo,
+                timeout=120,
+            )
+    except requests.RequestException as exc:
+        raise RuntimeError(f"falha de rede no upload: {exc}") from None
+    except OSError as exc:
+        raise RuntimeError(f"não consegui ler o arquivo: {exc}") from None
+
+    if not resp.ok:
+        raise RuntimeError(_erro_resposta(resp))
+
+    token = resp.json().get("upload", {}).get("token")
+    if not token:
+        raise RuntimeError("o Redmine aceitou o upload mas não devolveu token")
+
+    return token, nome, tipo
+
+
+@mcp.tool()
+def anexar_arquivo_issue(
+    issue_id: int,
+    caminho_arquivo: str,
+    descricao: str = "",
+    comentario: str = "",
+    nome_arquivo: str = "",
+) -> str:
+    """
+    Anexa um arquivo local a uma issue.
+
+    Faz o upload e vincula à issue em seguida — as duas etapas que a API do
+    Redmine exige, numa chamada só.
+
+    O caminho é lido na máquina onde este servidor MCP roda.
+
+    Args:
+        issue_id: ID da issue.
+        caminho_arquivo: caminho completo do arquivo na máquina do servidor.
+        descricao: descrição do anexo, exibida ao lado do nome.
+        comentario: nota a acrescentar no histórico junto com o anexo.
+        nome_arquivo: nome a exibir no Redmine (vazio = usa o nome do arquivo).
+    """
+    try:
+        token, nome, tipo = _enviar_binario(caminho_arquivo, nome_arquivo)
+    except Exception as exc:
+        return f"Erro no upload: {_erro_redmine(exc)}"
+
+    anexo = {"token": token, "filename": nome, "content_type": tipo}
+    if descricao:
+        anexo["description"] = descricao
+
+    issue = {"uploads": [anexo]}
+    if comentario:
+        issue["notes"] = comentario
+
+    try:
+        _request("PUT", f"/issues/{issue_id}.json", json={"issue": issue})
+    except Exception as exc:
+        return (
+            f"Upload de '{nome}' funcionou, mas falhou ao vincular à issue "
+            f"#{issue_id}: {_erro_redmine(exc)}. O token expira sozinho."
+        )
+
+    return f"'{nome}' ({tipo}) anexado à issue #{issue_id}."
+
+
+@mcp.tool()
+def detalhar_anexo(anexo_id: int) -> str:
+    """
+    Detalha um anexo: nome, tamanho, tipo, autor e URL de download.
+
+    Args:
+        anexo_id: ID do anexo (aparece em detalhar_issue, na lista 'attachments').
+    """
+    try:
+        data = _request("GET", f"/attachments/{anexo_id}.json")
+    except Exception as exc:
+        return f"Erro ao detalhar anexo #{anexo_id}: {_erro_redmine(exc)}"
+
+    a = data.get("attachment", {})
+    return json.dumps(
+        {
+            "id": a.get("id"),
+            "nome": a.get("filename"),
+            "tamanho_bytes": a.get("filesize"),
+            "tipo": a.get("content_type"),
+            "descricao": a.get("description"),
+            "autor": a.get("author", {}).get("name"),
+            "criado_em": a.get("created_on"),
+            "url": a.get("content_url"),
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
+
+
+@mcp.tool()
+def excluir_anexo(anexo_id: int) -> str:
+    """
+    Exclui um anexo permanentemente. O arquivo sai do disco do servidor.
+
+    Args:
+        anexo_id: ID do anexo.
+    """
+    try:
+        _request("DELETE", f"/attachments/{anexo_id}.json")
+    except Exception as exc:
+        return f"Erro ao excluir anexo #{anexo_id}: {_erro_redmine(exc)}"
+    return f"Anexo #{anexo_id} excluído."
+
+
+# ---------------------------------------------------------------------------
+# Projetos e membros
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+def detalhar_projeto(projeto_identifier: str) -> str:
+    """
+    Detalha um projeto: descrição, módulos habilitados, trackers e categorias.
+
+    Args:
+        projeto_identifier: identificador do projeto.
+    """
+    try:
+        data = _request(
+            "GET",
+            f"/projects/{projeto_identifier}.json?include=trackers,issue_categories,enabled_modules",
+        )
+    except Exception as exc:
+        return f"Erro ao detalhar projeto '{projeto_identifier}': {_erro_redmine(exc)}"
+    return json.dumps(data.get("project", {}), ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
+def criar_projeto(
+    nome: str,
+    identifier: str,
+    descricao: str = "",
+    projeto_pai_id: int = 0,
+    publico: bool = False,
+) -> str:
+    """
+    Cria um projeto.
+
+    Args:
+        nome: nome exibido.
+        identifier: identificador na URL — minúsculas, números e hífen, imutável
+            depois de criado.
+        descricao: descrição do projeto.
+        projeto_pai_id: ID do projeto pai, para criar como subprojeto.
+        publico: se visível a usuários não membros. O padrão aqui é privado,
+            mais conservador que o do Redmine.
+    """
+    projeto = {"name": nome, "identifier": identifier, "is_public": publico}
+    if descricao:
+        projeto["description"] = descricao
+    if projeto_pai_id:
+        projeto["parent_id"] = projeto_pai_id
+
+    try:
+        data = _request("POST", "/projects.json", json={"project": projeto})
+    except Exception as exc:
+        return f"Erro ao criar projeto '{nome}': {_erro_redmine(exc)}"
+
+    return json.dumps(data.get("project", {}), ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
+def atualizar_projeto(
+    projeto_identifier: str,
+    nome: str = "",
+    descricao: str = "",
+    homepage: str = "",
+) -> str:
+    """
+    Atualiza um projeto. Só altera os campos informados.
+
+    O 'identifier' não pode ser alterado depois da criação — é limitação do
+    Redmine, não deste servidor.
+
+    Args:
+        projeto_identifier: identificador do projeto.
+        nome: novo nome exibido (vazio = não altera).
+        descricao: nova descrição (vazio = não altera).
+        homepage: URL do projeto (vazio = não altera).
+    """
+    projeto = {}
+    if nome:
+        projeto["name"] = nome
+    if descricao:
+        projeto["description"] = descricao
+    if homepage:
+        projeto["homepage"] = homepage
+
+    if not projeto:
+        return f"Nada a atualizar em '{projeto_identifier}': nenhum campo informado."
+
+    try:
+        _request("PUT", f"/projects/{projeto_identifier}.json", json={"project": projeto})
+    except Exception as exc:
+        return f"Erro ao atualizar projeto '{projeto_identifier}': {_erro_redmine(exc)}"
+
+    return f"Projeto '{projeto_identifier}' atualizado ({', '.join(sorted(projeto))})."
+
+
+@mcp.tool()
+def arquivar_projeto(projeto_identifier: str, arquivar: bool = True) -> str:
+    """
+    Arquiva ou desarquiva um projeto.
+
+    Projeto arquivado fica somente leitura e some das listagens, sem perder
+    nada. É a alternativa reversível à exclusão — que este servidor não expõe
+    de propósito, por ser irreversível e levar junto issues, horas e wiki.
+    Excluir projeto é operação de tela.
+
+    Args:
+        projeto_identifier: identificador do projeto.
+        arquivar: True arquiva, False desarquiva.
+    """
+    acao = "archive" if arquivar else "unarchive"
+    try:
+        _request("PUT", f"/projects/{projeto_identifier}/{acao}.json")
+    except Exception as exc:
+        return (
+            f"Erro ao {'arquivar' if arquivar else 'desarquivar'} "
+            f"'{projeto_identifier}': {_erro_redmine(exc)}"
+        )
+    return f"Projeto '{projeto_identifier}' {'arquivado' if arquivar else 'desarquivado'}."
+
+
+@mcp.tool()
+def listar_membros_projeto(projeto_identifier: str) -> str:
+    """
+    Lista os membros de um projeto e os papéis de cada um.
+
+    Args:
+        projeto_identifier: identificador do projeto.
+    """
+    try:
+        data = _request("GET", f"/projects/{projeto_identifier}/memberships.json?limit=100")
+    except Exception as exc:
+        return f"Erro ao listar membros de '{projeto_identifier}': {_erro_redmine(exc)}"
+
+    membros = [
+        {
+            "id_associacao": m["id"],
+            "usuario_ou_grupo": (m.get("user") or m.get("group") or {}).get("name"),
+            "usuario_id": (m.get("user") or {}).get("id"),
+            "papeis": [p["name"] for p in m.get("roles", [])],
+        }
+        for m in data.get("memberships", [])
+    ]
+    return json.dumps(membros, ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
+def adicionar_membro_projeto(
+    projeto_identifier: str,
+    usuario_id: int,
+    papel_ids: list[int],
+) -> str:
+    """
+    Adiciona um usuário como membro de um projeto, com um ou mais papéis.
+
+    Args:
+        projeto_identifier: identificador do projeto.
+        usuario_id: ID do usuário (use listar_usuarios).
+        papel_ids: lista de IDs de papel (use listar_papeis).
+    """
+    if not papel_ids:
+        return "Informe ao menos um papel — membro sem papel não tem permissão nenhuma."
+
+    try:
+        data = _request(
+            "POST",
+            f"/projects/{projeto_identifier}/memberships.json",
+            json={"membership": {"user_id": usuario_id, "role_ids": papel_ids}},
+        )
+    except Exception as exc:
+        return f"Erro ao adicionar membro: {_erro_redmine(exc)}"
+
+    return json.dumps(data.get("membership", {}), ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
+def atualizar_membro_projeto(associacao_id: int, papel_ids: list[int]) -> str:
+    """
+    Substitui os papéis de um membro. A lista informada passa a ser a lista
+    completa — papel que não estiver nela é removido.
+
+    Args:
+        associacao_id: ID da associação (campo 'id_associacao' em
+            listar_membros_projeto), não o ID do usuário.
+        papel_ids: nova lista completa de IDs de papel.
+    """
+    if not papel_ids:
+        return "Informe ao menos um papel. Para tirar o acesso, use remover_membro_projeto."
+
+    try:
+        _request(
+            "PUT",
+            f"/memberships/{associacao_id}.json",
+            json={"membership": {"role_ids": papel_ids}},
+        )
+    except Exception as exc:
+        return f"Erro ao atualizar associação #{associacao_id}: {_erro_redmine(exc)}"
+
+    return f"Associação #{associacao_id} agora tem os papéis {papel_ids}."
+
+
+@mcp.tool()
+def remover_membro_projeto(associacao_id: int) -> str:
+    """
+    Remove um membro do projeto.
+
+    O usuário perde acesso, mas o que ele criou permanece — issues, comentários
+    e lançamentos de horas continuam registrados em nome dele.
+
+    Args:
+        associacao_id: ID da associação (campo 'id_associacao' em
+            listar_membros_projeto), não o ID do usuário.
+    """
+    try:
+        _request("DELETE", f"/memberships/{associacao_id}.json")
+    except Exception as exc:
+        return f"Erro ao remover associação #{associacao_id}: {_erro_redmine(exc)}"
+    return f"Associação #{associacao_id} removida."
 
 
 if __name__ == "__main__":

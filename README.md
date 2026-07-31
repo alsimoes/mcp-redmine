@@ -225,6 +225,51 @@ com 422, que aparece como erro daquele par sem afetar os demais.
 > (Configurações do projeto → Módulos → Wiki) e a permissão REST correspondente
 > deve estar ativa para o seu usuário/role.
 
+### Anexos
+
+| Ferramenta | O que faz |
+|---|---|
+| `anexar_arquivo_issue` | Envia um arquivo local e vincula à issue |
+| `detalhar_anexo` | Nome, tamanho, tipo, autor e URL de download |
+| `excluir_anexo` | Exclui um anexo permanentemente |
+
+A API do Redmine exige duas etapas — `POST /uploads.json` para obter um token e
+depois vincular o token à issue. `anexar_arquivo_issue` faz as duas numa chamada.
+
+> **O caminho do arquivo é lido na máquina onde o servidor MCP roda**, não na de
+> quem chama a ferramenta. Em uso local isso é a mesma máquina; num cenário
+> remoto, não.
+
+O upload não passa pelo `_request`, porque exige `Content-Type:
+application/octet-stream` enquanto o resto da API usa JSON. Antes de tocar a
+rede, o servidor recusa arquivo inexistente, arquivo vazio (o Redmine rejeita 0
+byte) e arquivo acima de 50 MB — limite deste servidor, ajustável em
+`_TAMANHO_MAXIMO_UPLOAD`. O tipo MIME é deduzido da extensão.
+
+### Projetos e membros
+
+| Ferramenta | O que faz |
+|---|---|
+| `detalhar_projeto` | Descrição, módulos habilitados, trackers e categorias |
+| `criar_projeto` | Cria projeto ou subprojeto |
+| `atualizar_projeto` | Nome, descrição e homepage |
+| `arquivar_projeto` | Arquiva ou desarquiva |
+| `listar_membros_projeto` | Membros e seus papéis |
+| `adicionar_membro_projeto` | Adiciona usuário com um ou mais papéis |
+| `atualizar_membro_projeto` | Substitui a lista de papéis de um membro |
+| `remover_membro_projeto` | Remove o membro do projeto |
+
+`criar_projeto` nasce **privado** por padrão, mais conservador que o do Redmine.
+O `identifier` é imutável depois de criado — limitação do Redmine.
+
+As três ferramentas de membro trabalham com o **ID da associação**, não o do
+usuário. Ele vem no campo `id_associacao` de `listar_membros_projeto`.
+
+> **Não existe `excluir_projeto`, de propósito.** É irreversível e leva junto
+> issues, horas, wiki e anexos. Use `arquivar_projeto`, que tem o mesmo efeito
+> prático — some das listagens, fica somente leitura — e se desfaz. Excluir
+> projeto de verdade continua sendo operação de tela.
+
 ## 7. Mensagens de erro
 
 O tratamento é centralizado em `_request`. Quando a API do Redmine recusa uma
