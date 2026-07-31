@@ -131,6 +131,9 @@ comentário no histórico.
 | `listar_campos_personalizados` | IDs, formato e valores possíveis dos campos personalizados |
 | `listar_categorias_projeto` | Categorias de tarefa de um projeto, com IDs |
 | `criar_categoria_projeto` | Cria uma categoria de tarefa |
+| `atualizar_categoria_projeto` | Renomeia ou muda o responsável padrão |
+| `excluir_categoria_projeto` | Exclui, opcionalmente reatribuindo as issues |
+| `listar_categorias_documento` | Categorias do módulo Documentos |
 | `listar_versoes_projeto` | Versões (marcos) de um projeto, com IDs |
 | `criar_versao_projeto` | Cria uma versão |
 | `atualizar_versao` | Renomeia, redata ou muda a situação de uma versão |
@@ -153,8 +156,34 @@ de chamar `criar_issue`, em vez de assumir os valores padrão da documentação.
 | `usuario_atual` | Quem é o dono da API key, e se é administrador |
 | `listar_usuarios` | Lista usuários, com filtro por situação e nome |
 | `detalhar_usuario` | Detalha um usuário, com projetos e papéis |
+| `criar_usuario` | Cria usuário, com senha gerada pelo Redmine |
+| `atualizar_usuario` | Altera dados, bloqueia ou desbloqueia |
+| `atualizar_minha_conta` | Altera os dados do dono da API key |
 | `listar_papeis` | Papéis da instância, com IDs |
 | `detalhar_papel` | Permissões concedidas a um papel |
+
+> **`criar_usuario` não aceita senha como parâmetro, de propósito.** A senha é
+> gerada pelo Redmine e enviada por e-mail à pessoa, para que nenhuma credencial
+> passe pela conversa com o agente. Para definir a senha manualmente, use a tela.
+
+> **Não existe exclusão de usuário.** `atualizar_usuario` com `status=3` bloqueia
+> o acesso e preserva a autoria de tudo o que a pessoa criou. Excluir de verdade
+> continua sendo operação de tela.
+
+### Grupos
+
+| Ferramenta | O que faz |
+|---|---|
+| `listar_grupos` | Grupos da instância |
+| `detalhar_grupo` | Integrantes e projetos do grupo |
+| `criar_grupo` | Cria grupo, opcionalmente já com integrantes |
+| `atualizar_grupo` | Renomeia ou substitui a lista de integrantes |
+| `excluir_grupo` | Exclui o grupo; os usuários permanecem |
+| `adicionar_usuario_grupo` | Acrescenta um integrante sem mexer nos demais |
+| `remover_usuario_grupo` | Remove um integrante |
+
+`atualizar_grupo` com `usuario_ids` substitui a lista inteira — quem não estiver
+nela sai. Para acrescentar uma pessoa, use `adicionar_usuario_grupo`.
 
 `listar_usuarios` exige administrador. `usuario_atual` funciona com qualquer key
 e é a forma mais direta de confirmar sob qual identidade o agente está operando.
@@ -180,7 +209,10 @@ entre exigir todas as palavras ou qualquer uma delas.
 | `remover_observador` | Remove watcher |
 | `atualizar_comentario` | Edita o texto de um comentário já postado |
 | `listar_noticias` | Lista notícias, por projeto ou da instância |
+| `detalhar_noticia` | Texto completo, comentários e anexos |
 | `criar_noticia` | Publica uma notícia em um projeto |
+| `atualizar_noticia` | Edita uma notícia publicada |
+| `excluir_noticia` | Exclui uma notícia |
 
 > `atualizar_comentario` usa `PUT /journals/:id.json`, marcado como **alpha** na
 > documentação do Redmine. Se responder 404, a sua versão não tem esse endpoint.
@@ -241,6 +273,7 @@ Redmine substitui a página inteira — anexar sem esse cuidado apagaria o conte
 | Ferramenta | O que faz |
 |---|---|
 | `listar_horas` | Lista lançamentos de horas com filtros (projeto, issue, usuário, período) e soma o total |
+| `detalhar_lancamento_horas` | Detalha um lançamento específico |
 | `registrar_horas` | Lança horas trabalhadas em uma issue ou projeto |
 | `atualizar_lancamento_horas` | Atualiza um lançamento de horas existente |
 | `excluir_lancamento_horas` | Exclui um lançamento de horas |
@@ -257,7 +290,13 @@ Redmine substitui a página inteira — anexar sem esse cuidado apagaria o conte
 | `anexar_arquivo_issue` | Envia um arquivo local e vincula à issue |
 | `anexar_arquivo_wiki` | Mesma coisa, para página de wiki |
 | `detalhar_anexo` | Nome, tamanho, tipo, autor e URL de download |
+| `atualizar_anexo` | Renomeia ou muda a descrição, sem reenviar |
 | `excluir_anexo` | Exclui um anexo permanentemente |
+| `listar_arquivos_projeto` | Arquivos publicados na aba Arquivos do projeto |
+| `enviar_arquivo_projeto` | Publica um arquivo no projeto, ligado a uma versão |
+
+Arquivo de projeto não é anexo de issue: são artefatos do projeto — builds,
+instaladores, documentos — opcionalmente vinculados a uma versão.
 
 A API do Redmine exige duas etapas — `POST /uploads.json` para obter um token e
 depois vincular o token à issue. `anexar_arquivo_issue` faz as duas numa chamada
@@ -298,6 +337,44 @@ usuário. Ele vem no campo `id_associacao` de `listar_membros_projeto`.
 > prático — some das listagens, fica somente leitura — e se desfaz. Excluir
 > projeto de verdade continua sendo operação de tela.
 
+### Cobertura da API REST
+
+São 73 ferramentas cobrindo, na prática, toda a API REST estável do Redmine.
+
+| Recurso da API | Situação |
+|---|---|
+| Issues | completo (listar, detalhar, criar, atualizar, lote, excluir, observadores) |
+| Relações entre issues | completo |
+| Projetos | completo **menos exclusão** |
+| Membros de projeto | completo |
+| Versões | completo |
+| Categorias de tarefa | completo |
+| Usuários | completo **menos exclusão** |
+| Grupos | completo |
+| Papéis | completo (a API é somente leitura) |
+| Wiki | completo, incluindo aninhamento e anexos |
+| Anexos | completo |
+| Arquivos de projeto | completo |
+| Notícias | completo |
+| Controle de tempo | completo |
+| Busca e consultas salvas | completo |
+| Trackers, status, prioridades, atividades, campos personalizados | completo (a API é somente leitura) |
+| Categorias de documento | completo (a API é somente leitura) |
+
+**As duas ausências são deliberadas.** `excluir_projeto` e `excluir_usuario` são
+irreversíveis e levam junto conteúdo de terceiros — issues, horas, wiki, autoria.
+As alternativas cobrem o caso real: `arquivar_projeto` deixa o projeto somente
+leitura e fora das listagens, e `atualizar_usuario` com `status=3` bloqueia o
+acesso preservando o histórico. Ambas se desfazem. Excluir de verdade continua
+sendo operação de tela, onde a confirmação é explícita e humana.
+
+Trackers, status de issue, prioridades e papéis não têm operações de escrita na
+API do Redmine — são configuráveis apenas em Administração. Não é lacuna deste
+servidor.
+
+Fora da API REST estável, e portanto fora daqui: repositórios e changesets,
+proteção de páginas de wiki, e as telas de configuração da instância.
+
 ## 7. Mensagens de erro
 
 O tratamento é centralizado em `_request`. Quando a API do Redmine recusa uma
@@ -313,14 +390,27 @@ motivo provável:
 | 409 | conflito — o recurso foi alterado por outra pessoa |
 | 422 | dados recusados pela validação do Redmine |
 
-Vale para as 40 ferramentas, de leitura e de escrita. Antes, uma falha chegava
+Vale para todas as ferramentas, de leitura e de escrita. Antes, uma falha chegava
 como o texto cru do `requests`, com a URL inteira e nenhuma pista do motivo.
 
 ## 8. Observações de segurança
 
-- A API key dá acesso equivalente ao seu usuário do Redmine — trate-a como senha.
+- A API key dá acesso equivalente ao usuário dono dela — trate-a como senha.
 - Como o Redmine está em rede local (`.vmw`), isso só funciona rodando o
-  servidor MCP na mesma máquina/rede que tem acesso a esse host — ou seja,
-  Claude Desktop/Code local, não o Claude.ai web.
-- Se quiser restringir o que o agente pode fazer (ex: só leitura), basta
-  remover as funções `criar_issue` e `atualizar_issue` do `server.py`.
+  servidor MCP na mesma máquina ou rede que alcança esse host — ou seja,
+  Claude Desktop e Claude Code locais, não o Claude.ai web.
+
+**A forma certa de limitar o agente é pelo Redmine, não pelo código.** Crie um
+usuário dedicado, dê a ele um papel com as permissões que você aceita, e use a
+API key desse usuário. O servidor não decide o que pode: ele repassa a chamada, e
+quem recusa é o Redmine — com uma mensagem legível dizendo que faltou permissão.
+
+Isso é mais seguro e mais fácil de auditar do que remover funções do
+`server.py`, porque o limite fica registrado num lugar só, sobrevive a
+atualizações deste código, e aparece no histórico de cada issue com o nome de
+quem agiu.
+
+Duas permissões que valem pensar duas vezes antes de conceder a um agente:
+**excluir tarefas** e **administrador**. A primeira não tem desfazer; a segunda
+libera as operações de instância inteira — criar e bloquear usuários, mexer em
+grupos, ler todos os projetos.

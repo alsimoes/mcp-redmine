@@ -1981,5 +1981,564 @@ def remover_membro_projeto(associacao_id: int) -> str:
     return f"Associação #{associacao_id} removida."
 
 
+# ---------------------------------------------------------------------------
+# Grupos
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+def listar_grupos() -> str:
+    """
+    Lista os grupos de usuários da instância. Requer administrador.
+    """
+    try:
+        data = _request("GET", "/groups.json")
+    except Exception as exc:
+        return f"Erro ao listar grupos: {_erro_redmine(exc)}"
+    grupos = [{"id": g["id"], "nome": g["name"]} for g in data.get("groups", [])]
+    return json.dumps(grupos, ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
+def detalhar_grupo(grupo_id: int) -> str:
+    """
+    Detalha um grupo, com os usuários que o compõem e os projetos de que participa.
+
+    Args:
+        grupo_id: ID do grupo.
+    """
+    try:
+        data = _request("GET", f"/groups/{grupo_id}.json?include=users,memberships")
+    except Exception as exc:
+        return f"Erro ao detalhar grupo #{grupo_id}: {_erro_redmine(exc)}"
+    return json.dumps(data.get("group", {}), ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
+def criar_grupo(nome: str, usuario_ids: list[int] | None = None) -> str:
+    """
+    Cria um grupo de usuários.
+
+    Grupo serve para dar permissão a várias pessoas de uma vez: você o adiciona
+    como membro de um projeto e todos os integrantes herdam os papéis.
+
+    Args:
+        nome: nome do grupo.
+        usuario_ids: IDs dos usuários iniciais (opcional).
+    """
+    grupo = {"name": nome}
+    if usuario_ids:
+        grupo["user_ids"] = usuario_ids
+
+    try:
+        data = _request("POST", "/groups.json", json={"group": grupo})
+    except Exception as exc:
+        return f"Erro ao criar grupo '{nome}': {_erro_redmine(exc)}"
+    return json.dumps(data.get("group", {}), ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
+def atualizar_grupo(grupo_id: int, nome: str = "", usuario_ids: list[int] | None = None) -> str:
+    """
+    Atualiza um grupo.
+
+    Args:
+        grupo_id: ID do grupo.
+        nome: novo nome (vazio = não altera).
+        usuario_ids: nova lista COMPLETA de integrantes — quem não estiver nela
+            sai do grupo. Para acrescentar uma pessoa sem mexer no resto, use
+            adicionar_usuario_grupo.
+    """
+    grupo = {}
+    if nome:
+        grupo["name"] = nome
+    if usuario_ids is not None:
+        grupo["user_ids"] = usuario_ids
+
+    if not grupo:
+        return f"Nada a atualizar no grupo #{grupo_id}: nenhum campo informado."
+
+    try:
+        _request("PUT", f"/groups/{grupo_id}.json", json={"group": grupo})
+    except Exception as exc:
+        return f"Erro ao atualizar grupo #{grupo_id}: {_erro_redmine(exc)}"
+    return f"Grupo #{grupo_id} atualizado."
+
+
+@mcp.tool()
+def excluir_grupo(grupo_id: int) -> str:
+    """
+    Exclui um grupo. Os usuários continuam existindo; perdem apenas as
+    permissões que vinham por ele.
+
+    Args:
+        grupo_id: ID do grupo.
+    """
+    try:
+        _request("DELETE", f"/groups/{grupo_id}.json")
+    except Exception as exc:
+        return f"Erro ao excluir grupo #{grupo_id}: {_erro_redmine(exc)}"
+    return f"Grupo #{grupo_id} excluído."
+
+
+@mcp.tool()
+def adicionar_usuario_grupo(grupo_id: int, usuario_id: int) -> str:
+    """
+    Acrescenta um usuário a um grupo, sem mexer nos demais integrantes.
+
+    Args:
+        grupo_id: ID do grupo.
+        usuario_id: ID do usuário.
+    """
+    try:
+        _request("POST", f"/groups/{grupo_id}/users.json", json={"user_id": usuario_id})
+    except Exception as exc:
+        return f"Erro ao adicionar usuário #{usuario_id} ao grupo #{grupo_id}: {_erro_redmine(exc)}"
+    return f"Usuário #{usuario_id} entrou no grupo #{grupo_id}."
+
+
+@mcp.tool()
+def remover_usuario_grupo(grupo_id: int, usuario_id: int) -> str:
+    """
+    Remove um usuário de um grupo.
+
+    Args:
+        grupo_id: ID do grupo.
+        usuario_id: ID do usuário.
+    """
+    try:
+        _request("DELETE", f"/groups/{grupo_id}/users/{usuario_id}.json")
+    except Exception as exc:
+        return f"Erro ao remover usuário #{usuario_id} do grupo #{grupo_id}: {_erro_redmine(exc)}"
+    return f"Usuário #{usuario_id} saiu do grupo #{grupo_id}."
+
+
+# ---------------------------------------------------------------------------
+# Administração de usuários
+# ---------------------------------------------------------------------------
+
+# 1 = ativo, 2 = registrado aguardando ativação, 3 = bloqueado
+_STATUS_USUARIO = {1: "ativo", 2: "aguardando ativação", 3: "bloqueado"}
+
+
+@mcp.tool()
+def criar_usuario(
+    login: str,
+    nome: str,
+    sobrenome: str,
+    email: str,
+    administrador: bool = False,
+    enviar_credenciais: bool = True,
+) -> str:
+    """
+    Cria um usuário. Requer administrador.
+
+    A senha é gerada pelo próprio Redmine e enviada por e-mail à pessoa — esta
+    ferramenta não aceita senha como parâmetro, de propósito, para que nenhuma
+    credencial passe pela conversa. Se preferir definir a senha manualmente,
+    use a tela do Redmine.
+
+    Args:
+        login: nome de usuário para autenticação.
+        nome: primeiro nome.
+        sobrenome: sobrenome.
+        email: endereço de e-mail, usado também para enviar as credenciais.
+        administrador: concede privilégio de administrador.
+        enviar_credenciais: envia o e-mail com a senha gerada. Desligue apenas se
+            for definir a senha por outro caminho — sem isso a pessoa não
+            consegue entrar.
+    """
+    usuario = {
+        "login": login,
+        "firstname": nome,
+        "lastname": sobrenome,
+        "mail": email,
+        "admin": administrador,
+        "generate_password": True,
+    }
+    payload = {"user": usuario}
+    if enviar_credenciais:
+        payload["send_information"] = True
+
+    try:
+        data = _request("POST", "/users.json", json=payload)
+    except Exception as exc:
+        return f"Erro ao criar usuário '{login}': {_erro_redmine(exc)}"
+
+    u = data.get("user", {})
+    return json.dumps(
+        {
+            "id": u.get("id"),
+            "login": u.get("login"),
+            "nome": f"{u.get('firstname','')} {u.get('lastname','')}".strip(),
+            "email": u.get("mail"),
+            "administrador": u.get("admin"),
+            "senha": "gerada pelo Redmine"
+            + (" e enviada por e-mail" if enviar_credenciais else ", NÃO enviada"),
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
+
+
+@mcp.tool()
+def atualizar_usuario(
+    usuario_id: int,
+    login: str = "",
+    nome: str = "",
+    sobrenome: str = "",
+    email: str = "",
+    status: int = 0,
+    administrador: int = -1,
+) -> str:
+    """
+    Atualiza um usuário. Requer administrador.
+
+    Bloquear é a alternativa reversível à exclusão: o usuário perde o acesso mas
+    tudo o que ele criou continua atribuído a ele. Este servidor não expõe
+    exclusão de usuário justamente por isso — excluir de verdade continua sendo
+    operação de tela.
+
+    Args:
+        usuario_id: ID do usuário.
+        login: novo login (vazio = não altera).
+        nome: novo primeiro nome (vazio = não altera).
+        sobrenome: novo sobrenome (vazio = não altera).
+        email: novo e-mail (vazio = não altera).
+        status: 1 = ativo, 3 = bloqueado (0 = não altera).
+        administrador: 1 concede, 0 revoga, -1 não altera.
+    """
+    if status and status not in _STATUS_USUARIO:
+        return f"Status inválido: {status}. Use 1 (ativo) ou 3 (bloqueado)."
+
+    usuario = {}
+    if login:
+        usuario["login"] = login
+    if nome:
+        usuario["firstname"] = nome
+    if sobrenome:
+        usuario["lastname"] = sobrenome
+    if email:
+        usuario["mail"] = email
+    if status:
+        usuario["status"] = status
+    if administrador in (0, 1):
+        usuario["admin"] = bool(administrador)
+
+    if not usuario:
+        return f"Nada a atualizar no usuário #{usuario_id}: nenhum campo informado."
+
+    try:
+        _request("PUT", f"/users/{usuario_id}.json", json={"user": usuario})
+    except Exception as exc:
+        return f"Erro ao atualizar usuário #{usuario_id}: {_erro_redmine(exc)}"
+
+    resumo = ", ".join(sorted(usuario))
+    if status:
+        resumo += f" (agora {_STATUS_USUARIO[status]})"
+    return f"Usuário #{usuario_id} atualizado: {resumo}."
+
+
+@mcp.tool()
+def atualizar_minha_conta(
+    nome: str = "",
+    sobrenome: str = "",
+    email: str = "",
+) -> str:
+    """
+    Atualiza os dados do usuário dono da API key.
+
+    Args:
+        nome: novo primeiro nome (vazio = não altera).
+        sobrenome: novo sobrenome (vazio = não altera).
+        email: novo e-mail (vazio = não altera).
+    """
+    usuario = {}
+    if nome:
+        usuario["firstname"] = nome
+    if sobrenome:
+        usuario["lastname"] = sobrenome
+    if email:
+        usuario["mail"] = email
+
+    if not usuario:
+        return "Nada a atualizar: nenhum campo informado."
+
+    try:
+        _request("PUT", "/my/account.json", json={"user": usuario})
+    except Exception as exc:
+        return f"Erro ao atualizar a própria conta: {_erro_redmine(exc)}"
+    return f"Conta atualizada: {', '.join(sorted(usuario))}."
+
+
+# ---------------------------------------------------------------------------
+# Arquivos de projeto, categorias e notícias
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+def listar_arquivos_projeto(projeto_identifier: str) -> str:
+    """
+    Lista os arquivos publicados na aba Arquivos de um projeto.
+
+    Não confundir com anexos de issue: estes são artefatos do projeto — builds,
+    instaladores, documentos —, opcionalmente vinculados a uma versão.
+
+    Args:
+        projeto_identifier: identificador do projeto.
+    """
+    try:
+        data = _request("GET", f"/projects/{projeto_identifier}/files.json")
+    except Exception as exc:
+        return f"Erro ao listar arquivos de '{projeto_identifier}': {_erro_redmine(exc)}"
+
+    arquivos = [
+        {
+            "id": a["id"],
+            "nome": a.get("filename"),
+            "tamanho_bytes": a.get("filesize"),
+            "tipo": a.get("content_type"),
+            "descricao": a.get("description"),
+            "versao": (a.get("version") or {}).get("name"),
+            "downloads": a.get("downloads"),
+            "url": a.get("content_url"),
+        }
+        for a in data.get("files", [])
+    ]
+    return json.dumps(arquivos, ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
+def enviar_arquivo_projeto(
+    projeto_identifier: str,
+    caminho_arquivo: str,
+    descricao: str = "",
+    versao_id: int = 0,
+    nome_arquivo: str = "",
+) -> str:
+    """
+    Publica um arquivo na aba Arquivos de um projeto.
+
+    O caminho é lido na máquina onde este servidor MCP roda.
+
+    Args:
+        projeto_identifier: identificador do projeto.
+        caminho_arquivo: caminho completo do arquivo na máquina do servidor.
+        descricao: descrição exibida na listagem.
+        versao_id: vincula o arquivo a uma versão (0 = nenhuma).
+        nome_arquivo: nome a exibir (vazio = usa o nome do arquivo).
+    """
+    try:
+        token, nome, tipo = _enviar_binario(caminho_arquivo, nome_arquivo)
+    except Exception as exc:
+        return f"Erro no upload: {_erro_redmine(exc)}"
+
+    arquivo = {"token": token, "filename": nome, "content_type": tipo}
+    if descricao:
+        arquivo["description"] = descricao
+    if versao_id:
+        arquivo["version_id"] = versao_id
+
+    try:
+        _request(
+            "POST",
+            f"/projects/{projeto_identifier}/files.json",
+            json={"file": arquivo},
+        )
+    except Exception as exc:
+        return (
+            f"Upload de '{nome}' funcionou, mas falhou ao publicar em "
+            f"'{projeto_identifier}': {_erro_redmine(exc)}. O token expira sozinho."
+        )
+
+    return f"'{nome}' ({tipo}) publicado nos arquivos de '{projeto_identifier}'."
+
+
+@mcp.tool()
+def atualizar_categoria_projeto(
+    categoria_id: int,
+    nome: str = "",
+    responsavel_id: int = 0,
+) -> str:
+    """
+    Atualiza uma categoria de tarefa.
+
+    Args:
+        categoria_id: ID da categoria (use listar_categorias_projeto).
+        nome: novo nome (vazio = não altera).
+        responsavel_id: novo responsável padrão (0 = não altera).
+    """
+    categoria = {}
+    if nome:
+        categoria["name"] = nome
+    if responsavel_id:
+        categoria["assigned_to_id"] = responsavel_id
+
+    if not categoria:
+        return f"Nada a atualizar na categoria #{categoria_id}: nenhum campo informado."
+
+    try:
+        _request("PUT", f"/issue_categories/{categoria_id}.json", json={"issue_category": categoria})
+    except Exception as exc:
+        return f"Erro ao atualizar categoria #{categoria_id}: {_erro_redmine(exc)}"
+    return f"Categoria #{categoria_id} atualizada ({', '.join(sorted(categoria))})."
+
+
+@mcp.tool()
+def excluir_categoria_projeto(categoria_id: int, reatribuir_para_id: int = 0) -> str:
+    """
+    Exclui uma categoria de tarefa.
+
+    As issues que usavam a categoria ficam sem categoria, a menos que você
+    informe outra para recebê-las.
+
+    Args:
+        categoria_id: ID da categoria a excluir.
+        reatribuir_para_id: ID da categoria que recebe as issues órfãs
+            (0 = deixa sem categoria).
+    """
+    caminho = f"/issue_categories/{categoria_id}.json"
+    if reatribuir_para_id:
+        caminho += f"?reassign_to_id={reatribuir_para_id}"
+
+    try:
+        _request("DELETE", caminho)
+    except Exception as exc:
+        return f"Erro ao excluir categoria #{categoria_id}: {_erro_redmine(exc)}"
+
+    destino = (
+        f", issues reatribuídas para a categoria #{reatribuir_para_id}"
+        if reatribuir_para_id
+        else ", issues ficaram sem categoria"
+    )
+    return f"Categoria #{categoria_id} excluída{destino}."
+
+
+@mcp.tool()
+def detalhar_noticia(noticia_id: int) -> str:
+    """
+    Detalha uma notícia, com o texto completo e os comentários.
+
+    Args:
+        noticia_id: ID da notícia (use listar_noticias).
+    """
+    try:
+        data = _request("GET", f"/news/{noticia_id}.json?include=comments,attachments")
+    except Exception as exc:
+        return f"Erro ao detalhar notícia #{noticia_id}: {_erro_redmine(exc)}"
+    return json.dumps(data.get("news", {}), ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
+def atualizar_noticia(
+    noticia_id: int,
+    titulo: str = "",
+    descricao: str = "",
+    resumo: str = "",
+) -> str:
+    """
+    Atualiza uma notícia publicada.
+
+    Disponível a partir do Redmine 5.1; em versões anteriores responde 404.
+
+    Args:
+        noticia_id: ID da notícia.
+        titulo: novo título (vazio = não altera).
+        descricao: novo corpo (vazio = não altera).
+        resumo: novo resumo (vazio = não altera).
+    """
+    noticia = {}
+    if titulo:
+        noticia["title"] = titulo
+    if descricao:
+        noticia["description"] = descricao
+    if resumo:
+        noticia["summary"] = resumo
+
+    if not noticia:
+        return f"Nada a atualizar na notícia #{noticia_id}: nenhum campo informado."
+
+    try:
+        _request("PUT", f"/news/{noticia_id}.json", json={"news": noticia})
+    except Exception as exc:
+        return f"Erro ao atualizar notícia #{noticia_id}: {_erro_redmine(exc)}"
+    return f"Notícia #{noticia_id} atualizada ({', '.join(sorted(noticia))})."
+
+
+@mcp.tool()
+def excluir_noticia(noticia_id: int) -> str:
+    """
+    Exclui uma notícia. Disponível a partir do Redmine 5.1.
+
+    Args:
+        noticia_id: ID da notícia.
+    """
+    try:
+        _request("DELETE", f"/news/{noticia_id}.json")
+    except Exception as exc:
+        return f"Erro ao excluir notícia #{noticia_id}: {_erro_redmine(exc)}"
+    return f"Notícia #{noticia_id} excluída."
+
+
+@mcp.tool()
+def listar_categorias_documento() -> str:
+    """
+    Lista as categorias de documento da instância, com seus IDs.
+
+    Pertencem ao módulo Documentos; se ele estiver desabilitado no projeto, a
+    lista continua existindo mas não tem uso prático ali.
+    """
+    data = _request("GET", "/enumerations/document_categories.json")
+    return json.dumps(data.get("document_categories", []), ensure_ascii=False, indent=2)
+
+
+# ---------------------------------------------------------------------------
+# Retoques
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+def atualizar_anexo(anexo_id: int, nome_arquivo: str = "", descricao: str = "") -> str:
+    """
+    Renomeia um anexo ou muda sua descrição, sem reenviar o arquivo.
+
+    Disponível a partir do Redmine 5.0; em versões anteriores responde 404.
+
+    Args:
+        anexo_id: ID do anexo.
+        nome_arquivo: novo nome exibido (vazio = não altera).
+        descricao: nova descrição (vazio = não altera).
+    """
+    anexo = {}
+    if nome_arquivo:
+        anexo["filename"] = nome_arquivo
+    if descricao:
+        anexo["description"] = descricao
+
+    if not anexo:
+        return f"Nada a atualizar no anexo #{anexo_id}: nenhum campo informado."
+
+    try:
+        _request("PATCH", f"/attachments/{anexo_id}.json", json={"attachment": anexo})
+    except Exception as exc:
+        return f"Erro ao atualizar anexo #{anexo_id}: {_erro_redmine(exc)}"
+    return f"Anexo #{anexo_id} atualizado ({', '.join(sorted(anexo))})."
+
+
+@mcp.tool()
+def detalhar_lancamento_horas(lancamento_id: int) -> str:
+    """
+    Detalha um lançamento de horas.
+
+    Args:
+        lancamento_id: ID do lançamento (use listar_horas).
+    """
+    try:
+        data = _request("GET", f"/time_entries/{lancamento_id}.json")
+    except Exception as exc:
+        return f"Erro ao detalhar lançamento #{lancamento_id}: {_erro_redmine(exc)}"
+    return json.dumps(data.get("time_entry", {}), ensure_ascii=False, indent=2)
+
+
 if __name__ == "__main__":
     mcp.run(transport="stdio")
