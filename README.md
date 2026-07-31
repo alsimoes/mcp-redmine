@@ -225,7 +225,25 @@ com 422, que aparece como erro daquele par sem afetar os demais.
 > (Configurações do projeto → Módulos → Wiki) e a permissão REST correspondente
 > deve estar ativa para o seu usuário/role.
 
-## 7. Observações de segurança
+## 7. Mensagens de erro
+
+O tratamento é centralizado em `_request`. Quando a API do Redmine recusa uma
+chamada, o servidor lê o corpo da resposta — é lá que está a explicação real, no
+campo `errors` — e devolve essa frase. Sem corpo útil, cai no status HTTP com o
+motivo provável:
+
+| Status | Mensagem |
+|---|---|
+| 401 | API key inválida ou ausente |
+| 403 | sem permissão para esta operação, ou módulo desabilitado no projeto |
+| 404 | não encontrado (confira o ID, ou o endpoint pode não existir nesta versão) |
+| 409 | conflito — o recurso foi alterado por outra pessoa |
+| 422 | dados recusados pela validação do Redmine |
+
+Vale para as 40 ferramentas, de leitura e de escrita. Antes, uma falha chegava
+como o texto cru do `requests`, com a URL inteira e nenhuma pista do motivo.
+
+## 8. Observações de segurança
 
 - A API key dá acesso equivalente ao seu usuário do Redmine — trate-a como senha.
 - Como o Redmine está em rede local (`.vmw`), isso só funciona rodando o

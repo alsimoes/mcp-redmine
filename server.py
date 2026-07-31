@@ -34,10 +34,55 @@ HEADERS = {
 }
 
 
+# Motivos prováveis por status, para quem lê a mensagem sem ter a documentação
+# do Redmine aberta ao lado.
+_MOTIVOS_HTTP = {
+    401: "API key inválida ou ausente",
+    403: "sem permissão para esta operação, ou módulo desabilitado no projeto",
+    404: "não encontrado (confira o ID, ou o endpoint pode não existir nesta versão)",
+    409: "conflito — o recurso foi alterado por outra pessoa",
+    422: "dados recusados pela validação do Redmine",
+}
+
+
+def _erro_resposta(resp) -> str:
+    """
+    Traduz uma resposta de erro do Redmine em uma frase legível.
+
+    Em falhas de validação o Redmine devolve {"errors": [...]} no corpo, e é ali
+    que está a explicação de verdade — campo obrigatório em branco, relação
+    circular, ID inexistente. Quando não há corpo útil, cai no status com o
+    motivo provável.
+    """
+    try:
+        erros = resp.json().get("errors")
+        if erros:
+            return "; ".join(str(e) for e in erros)
+    except ValueError:
+        pass
+
+    motivo = _MOTIVOS_HTTP.get(resp.status_code)
+    return f"HTTP {resp.status_code}" + (f" — {motivo}" if motivo else "")
+
+
 def _request(method: str, path: str, **kwargs):
+    """
+    Executa a chamada à API do Redmine.
+
+    Em caso de falha levanta RuntimeError já com a mensagem tratada, em vez do
+    texto cru do requests. Isso vale para todas as ferramentas: as que capturam
+    a exceção acrescentam o próprio contexto, e as que não capturam deixam o
+    FastMCP exibir a mensagem, que já é legível por si.
+    """
     url = f"{REDMINE_URL}{path}"
-    resp = requests.request(method, url, headers=HEADERS, timeout=15, **kwargs)
-    resp.raise_for_status()
+    try:
+        resp = requests.request(method, url, headers=HEADERS, timeout=15, **kwargs)
+    except requests.RequestException as exc:
+        raise RuntimeError(f"falha de rede ao acessar o Redmine: {exc}") from None
+
+    if not resp.ok:
+        raise RuntimeError(_erro_resposta(resp))
+
     if resp.text.strip():
         return resp.json()
     return {}
@@ -45,22 +90,16 @@ def _request(method: str, path: str, **kwargs):
 
 def _erro_redmine(exc: Exception) -> str:
     """
-    Extrai a mensagem de erro do corpo da resposta do Redmine.
+    Devolve a mensagem de uma exceção vinda de _request.
 
-    O Redmine devolve 422 com {"errors": [...]} em falhas de validação — campo
-    obrigatório em branco, ID inexistente, relação circular. Sem isto sobraria
-    só o texto genérico do requests, que não diz o que houve.
+    Desde que o tratamento passou para dentro do _request, a exceção já chega
+    com o texto pronto. A checagem de 'response' permanece para o caso de uma
+    HTTPError vinda de outro caminho.
     """
     resposta = getattr(exc, "response", None)
-    if resposta is None:
-        return str(exc)
-    try:
-        erros = resposta.json().get("errors")
-        if erros:
-            return "; ".join(str(e) for e in erros)
-    except ValueError:
-        pass
-    return f"HTTP {resposta.status_code}"
+    if resposta is not None:
+        return _erro_resposta(resposta)
+    return str(exc)
 
 
 @mcp.tool()
