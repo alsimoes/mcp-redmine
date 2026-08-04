@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(venv/Scripts/python.exe -m pytest*)",
+      "Bash(venv/Scripts/python.exe -m ruff check .)",
+      "Bash(venv/Scripts/python.exe -m ruff format --check .)",
+      "Bash(venv/Scripts/python.exe -m mypy src)",
+      "Bash(git status*)",
+      "Bash(git diff)",
+      "Bash(git diff --stat)",
+      "Bash(git diff --name-only)",
+      "Bash(git diff --cached)",
+      "Bash(git log*)"
+    ]
+  }
+}

@@ -1,10 +1,10 @@
-# Ambientes virtuais
+# Virtual environments
 venv/
 .venv/
 env/
 ENV/
 
-# Bytecode e artefatos de build
+# Bytecode and build artifacts
 __pycache__/
 *.py[cod]
 *$py.class
@@ -14,28 +14,41 @@ dist/
 *.egg-info/
 .eggs/
 
-# Segredos — a API key do Redmine dá acesso equivalente ao usuário dono dela.
-# A configuração canônica é o claude_desktop_config.json, fora deste repositório;
-# estes padrões existem para o caso de alguém preferir um .env local.
+# Secrets — a Redmine API key grants access equivalent to the user who owns it.
+# The canonical configuration lives in your MCP client's server config (e.g.
+# claude_desktop_config.json), outside this repository; these patterns exist
+# in case you prefer a local .env instead.
 .env
 .env.*
 !.env.example
 *.key
 secrets.json
 
-# Editores e IDEs
-.vscode/
+# Test, lint, and type-check caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+htmlcov/
+
+# Editors and IDEs
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/mcp.json
 .idea/
 *.swp
 *~
 
-# Sistema operacional
+# Local Claude Code overrides (shared settings live in .claude/settings.json)
+.claude/settings.local.json
+
+# Operating system
 Thumbs.db
 desktop.ini
 .DS_Store
 
-# Logs e temporários
+# Logs and temporary files
 *.log
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/

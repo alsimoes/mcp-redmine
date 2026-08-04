@@ -1,0 +1,26 @@
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "redmineApiKey",
+      "description": "Redmine API access key (My account > API access key)",
+      "password": true
+    },
+    {
+      "type": "promptString",
+      "id": "redmineUrl",
+      "description": "Redmine base URL (no trailing slash)"
+    }
+  ],
+  "servers": {
+    "redmine": {
+      "type": "stdio",
+      "command": "${workspaceFolder}/venv/Scripts/python.exe",
+      "args": ["-m", "mcp_redmine"],
+      "env": {
+        "REDMINE_URL": "${input:redmineUrl}",
+        "REDMINE_API_KEY": "${input:redmineApiKey}"
+      }
+    }
+  }
+}

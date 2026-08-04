@@ -1,0 +1,16 @@
+{
+  // Transport is stdio: the server talks MCP over stdin/stdout, so running it
+  // here just starts the process under the debugger — an MCP client needs to
+  // be the one launching/attaching to its stdio to actually exchange messages.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "mcp-redmine: run server (stdio)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "mcp_redmine",
+      "justMyCode": false,
+      "console": "integratedTerminal"
+    }
+  ]
+}

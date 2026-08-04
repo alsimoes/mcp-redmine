@@ -1,0 +1,90 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mcp-redmine"
+dynamic = ["version"]
+description = "Model Context Protocol server that connects Claude to a Redmine instance via its REST API"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "André Simões" },
+]
+keywords = ["mcp", "redmine", "claude", "model-context-protocol", "issue-tracker"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Bug Tracking",
+    "Typing :: Typed",
+]
+dependencies = [
+    "mcp[cli]>=1.0.0,<2.0.0",
+    "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "responses>=0.25.0",
+    "ruff>=0.6.0",
+    "mypy>=1.11.0",
+    "types-requests>=2.31.0",
+    "build>=1.2.0",
+    "twine>=5.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/alsimoes/mcp-redmine"
+Repository = "https://github.com/alsimoes/mcp-redmine"
+Issues = "https://github.com/alsimoes/mcp-redmine/issues"
+Changelog = "https://github.com/alsimoes/mcp-redmine/blob/main/CHANGELOG.md"
+
+[project.scripts]
+mcp-redmine = "mcp_redmine.app:main"
+
+[tool.hatch.version]
+path = "src/mcp_redmine/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcp_redmine"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "D", "UP", "B", "ANN", "S", "RUF"]
+ignore = [
+    "D203", # one-blank-line-before-class — conflicts with D211
+    "D213", # multi-line-summary-second-line — conflicts with D212
+    "ANN401", # allow Any where a tool genuinely accepts arbitrary JSON values
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "ANN", "D"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = "mcp.*"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

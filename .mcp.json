@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "redmine": {
+      "command": "uv",
+      "args": [
+        "run",
+        "python",
+        "-m",
+        "mcp_redmine"
+      ],
+      "env": {
+        "REDMINE_URL": "${REDMINE_URL}",
+        "REDMINE_API_KEY": "${REDMINE_API_KEY}",
+        "REDMINE_TIMEOUT": "${REDMINE_TIMEOUT:-15}"
+      }
+    }
+  }
+}
