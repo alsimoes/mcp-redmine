@@ -7,9 +7,22 @@ Thanks for considering a contribution to mcp-redmine.
 ```bash
 git clone https://github.com/alsimoes/mcp-redmine.git
 cd mcp-redmine
-python3 -m venv venv
-source venv/bin/activate        # Linux/Mac
-# venv\Scripts\activate         # Windows
+
+python3 -m venv venv && source venv/bin/activate    # Linux/Mac
+
+pip install -e ".[dev]"
+```
+
+On Windows, create the venv with `py` from PowerShell — not from a Git
+Bash/WSL shell, which overwrites `venv\pyvenv.cfg` with a Unix `home` path
+and breaks `venv\Scripts\python.exe` for every later Windows launch:
+
+```powershell
+git clone https://github.com/alsimoes/mcp-redmine.git
+cd mcp-redmine
+
+py -3 -m venv venv
+.\venv\Scripts\Activate.ps1
 
 pip install -e ".[dev]"
 ```
