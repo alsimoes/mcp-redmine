@@ -1,17 +1,12 @@
 {
   "mcpServers": {
     "redmine": {
-      "command": "uv",
-      "args": [
-        "run",
-        "python",
-        "-m",
-        "mcp_redmine"
-      ],
+      "command": "python",
+      "args": ["-m", "mcp_redmine"],
       "env": {
-        "REDMINE_URL": "${REDMINE_URL}",
+        "REDMINE_URL": "http://redmine.ubuntuserver.vmw",
         "REDMINE_API_KEY": "${REDMINE_API_KEY}",
-        "REDMINE_TIMEOUT": "${REDMINE_TIMEOUT:-15}"
+        "REDMINE_TIMEOUT": "15"
       }
     }
   }
