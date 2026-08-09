@@ -56,9 +56,24 @@ pip install mcp-redmine
 ```bash
 git clone https://github.com/alsimoes/mcp-redmine.git
 cd mcp-redmine
-python3 -m venv venv
-source venv/bin/activate        # Linux/Mac
-# venv\Scripts\activate         # Windows
+
+python3 -m venv venv && source venv/bin/activate    # Linux/Mac
+
+pip install -e .
+```
+
+On Windows, use `py` and PowerShell rather than a Git Bash/WSL shell — creating
+or recreating the venv from a Unix-style shell on Windows overwrites
+`venv\pyvenv.cfg` with a Unix `home` path, and every subsequent launch of
+`venv\Scripts\python.exe` fails with `No Python at '/usr/bin\python.exe'` (or
+similar):
+
+```powershell
+git clone https://github.com/alsimoes/mcp-redmine.git
+cd mcp-redmine
+
+py -3 -m venv venv
+.\venv\Scripts\Activate.ps1
 
 pip install -e .
 ```
@@ -104,6 +119,24 @@ pass the script as an argument:
   "mcpServers": {
     "redmine": {
       "command": "/full/path/to/mcp-redmine/venv/bin/python",
+      "args": ["-m", "mcp_redmine"],
+      "env": {
+        "REDMINE_URL": "https://redmine.example.com",
+        "REDMINE_API_KEY": "your_api_key_here"
+      }
+    }
+  }
+}
+```
+
+On Windows, point `command` at `venv\Scripts\python.exe` (with `\\` escaped
+in JSON):
+
+```json
+{
+  "mcpServers": {
+    "redmine": {
+      "command": "C:\\full\\path\\to\\mcp-redmine\\venv\\Scripts\\python.exe",
       "args": ["-m", "mcp_redmine"],
       "env": {
         "REDMINE_URL": "https://redmine.example.com",
