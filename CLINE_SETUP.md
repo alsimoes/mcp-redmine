@@ -1,40 +1,47 @@
-# Setup do mcp-redmine no Cline (VS Code)
+# Setting up mcp-redmine with Cline (VS Code)
 
-O `mcp-redmine` é compatível com o Cline sem nenhuma modificação. Este guia
-cobre a instalação e configuração do servidor MCP para funcionar com o Cline no
-VS Code, tanto no Windows quanto em Linux/Mac.
+This server works with Cline with no modification at all. This guide covers
+installing and configuring it for Cline in VS Code, on Windows and on
+Linux/macOS alike.
 
-## Pré-requisitos
+For a shorter version, the README has a [Cline section](README.md#cline-vs-code).
+If you want an agent to do the setup for you, point it at
+[llms-install.md](llms-install.md).
 
-- **Python 3.10+** instalado e no PATH
-- **Redmine** com REST API habilitada: *Administration → Settings → API → Enable REST web service*
-- **Chave de API** do Redmine: *My account → API access key*
-- **Cline** instalado no VS Code
+## Prerequisites
 
-## Instalação do MCP Server
+- **Python 3.10+** installed and on the `PATH`
+- **Redmine** with the REST API enabled: *Administration → Settings → API →
+  "Enable REST web service"*
+- A Redmine **API key**: *My account → API access key*
+- **Cline** installed in VS Code
 
-Escolha **uma** das três opções abaixo.
+## Installing the server
 
-> **Atenção ao nome do pacote.** A distribuição se chama **`mcp-redmine-rest`**,
-> e o executável instalado é `mcp-redmine-rest`. O nome curto `mcp-redmine` no
-> PyPI pertence a [outro projeto](https://github.com/runekaagaard/mcp-redmine),
-> sem relação com este — não instale aquele esperando este servidor.
+Pick **one** of the three options below.
 
-### Opção A: uv tool install (recomendado)
+> **Mind the package name.** The distribution is **`mcp-redmine-rest`**, and the
+> executable it installs is `mcp-redmine-rest`. The shorter `mcp-redmine` name
+> on PyPI belongs to [an unrelated
+> project](https://github.com/runekaagaard/mcp-redmine) — don't install that one
+> expecting this server.
+
+### Option A: uv tool install (recommended)
 
 ```bash
 uv tool install mcp-redmine-rest
 ```
 
-Isso instala o executável `mcp-redmine-rest` globalmente no ambiente `uv`.
+This installs the `mcp-redmine-rest` executable globally in the `uv`
+environment.
 
-### Opção B: pip
+### Option B: pip
 
 ```bash
 pip install mcp-redmine-rest
 ```
 
-### Opção C: from source
+### Option C: from source
 
 ```bash
 git clone https://github.com/alsimoes/mcp-redmine.git
@@ -43,7 +50,7 @@ python -m venv venv
 
 # Windows:
 venv\Scripts\activate
-# Linux/Mac:
+# Linux/macOS:
 source venv/bin/activate
 
 pip install -e .
@@ -51,57 +58,23 @@ pip install -e .
 
 ---
 
-## Configuração no Cline
+## Configuring Cline
 
-O Cline oferece **três formas** de registrar um MCP server. Escolha a que
-melhor se adequa ao seu fluxo.
+Cline keeps its MCP servers in a single settings file, and offers a UI that
+edits that same file for you. Both routes are below.
 
-> **Importante:** Em todos os snippets abaixo, substitua `REDMINE_URL` e
-> `REDMINE_API_KEY` pelos valores reais da sua instância Redmine.
-
----
-
-### Método 1 — `.mcp.json` no workspace (zero-config para o time)
-
-O repositório já inclui um arquivo `.mcp.json` na raiz. O Cline o detecta
-automaticamente quando você abre este repositório como workspace.
-
-1. Abra a pasta `mcp-redmine` como workspace no VS Code
-2. Edite o `.mcp.json` com suas variáveis de ambiente:
-
-```json
-{
-  "mcpServers": {
-    "redmine": {
-      "command": "uv",
-      "args": [
-        "run",
-        "python",
-        "-m",
-        "mcp_redmine"
-      ],
-      "env": {
-        "REDMINE_URL": "https://redmine.seuservidor.com",
-        "REDMINE_API_KEY": "sua_chave_api_aqui",
-        "REDMINE_TIMEOUT": "15"
-      }
-    }
-  }
-}
-```
-
-3. Recarregue a janela do VS Code (`Ctrl+Shift+P` → *Developer: Reload Window*)
-
-> **Nota:** Se você não usa `uv`, ajuste `command` e `args` conforme os
-> exemplos da seção "Configurações prontas para copiar-colar" abaixo.
+> **In every snippet, replace `REDMINE_URL` and `REDMINE_API_KEY` with the real
+> values for your Redmine instance.**
 
 ---
 
-### Método 2 — Configuração global do Cline
+### Method 1 — the MCP settings file (recommended)
 
-1. Abra o VS Code
-2. Pressione `Ctrl+Shift+P` e execute **Cline: Open MCP Config File** (ou *Cline: Abrir Arquivo de Configuração MCP*)
-3. O arquivo `cline_mcp_settings.json` será aberto. Adicione o bloco:
+1. Open VS Code.
+2. Press `Ctrl+Shift+P` and run **Cline: Open MCP Config File**, or click the
+   gear next to "MCP Servers" in the Cline sidebar and choose *Configure MCP
+   Servers*.
+3. `cline_mcp_settings.json` opens. Add the block:
 
 ```json
 {
@@ -109,47 +82,80 @@ automaticamente quando você abre este repositório como workspace.
     "redmine": {
       "command": "mcp-redmine-rest",
       "env": {
-        "REDMINE_URL": "https://redmine.seuservidor.com",
-        "REDMINE_API_KEY": "sua_chave_api_aqui"
+        "REDMINE_URL": "https://redmine.example.com",
+        "REDMINE_API_KEY": "your_api_key_here"
       }
     }
   }
 }
 ```
 
-4. Salve o arquivo e reinicie o VS Code
+4. Save the file and reload the window (`Ctrl+Shift+P` → *Developer: Reload
+   Window*).
 
-> **Localização do arquivo:**
-> - Windows: `%USERPROFILE%\.cline\cline_mcp_settings.json`
-> - Linux: `~/.cline/cline_mcp_settings.json`
-> - Mac: `~/Library/Application Support/Code/User/globalStorage/...` (use o comando da paleta)
+> **Where that file lives.** Prefer the palette command above — it opens the
+> right file regardless of platform. If you need the path anyway, it depends on
+> which Cline you are using:
+>
+> **Cline extension for VS Code**, under
+> `.../User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`:
+>
+> | | |
+> |---|---|
+> | Windows | `%APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\settings\` |
+> | macOS | `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/` |
+> | Linux | `~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/` |
+>
+> **Cline CLI / cline-core**, which keeps its own copy:
+> `~/.cline/data/settings/cline_mcp_settings.json`.
+>
+> Editing the wrong one is the most common reason a server never shows up.
 
 ---
 
-### Método 3 — Via interface do Cline (MCP Settings UI)
+### Method 2 — the Add MCP Server UI
 
-1. Clique no botão do Cline na barra lateral do VS Code
-2. Clique no ícone de engrenagem ao lado de "MCP Servers"
-3. Em "Installed", clique em **+ Add MCP Server**
-4. Preencha com os dados:
+1. Click the Cline button in the VS Code sidebar.
+2. Click the gear icon next to "MCP Servers".
+3. Under "Installed", click **+ Add MCP Server**.
+4. Fill in:
 
-| Campo | Valor |
+| Field | Value |
 |---|---|
 | Name | `redmine` |
-| Command | `mcp-redmine-rest` (ou `python`) |
-| Args | (deixe vazio, ou `-m mcp_redmine` se command for `python`) |
-| Env | `REDMINE_URL=https://redmine.seuservidor.com` |
-| | `REDMINE_API_KEY=sua_chave_api_aqui` |
+| Command | `mcp-redmine-rest` (or `python`) |
+| Args | (leave empty, or `-m mcp_redmine` if Command is `python`) |
+| Env | `REDMINE_URL=https://redmine.example.com` |
+| | `REDMINE_API_KEY=your_api_key_here` |
 
-5. Clique em **Save** e verifique se o servidor aparece como "Connected"
+5. Click **Save** and check that the server comes up as "Connected".
+
+This writes to the same `cline_mcp_settings.json` as Method 1.
 
 ---
 
-## Configurações prontas para copiar-colar
+### A note on `.mcp.json` and `.vscode/mcp.json`
 
-Escolha o snippet que corresponde à sua instalação e método de execução.
+**Cline does not auto-discover a workspace `.mcp.json`.** Its MCP configuration
+is global, shared across every workspace — that is why both methods above edit
+the same file. The two per-repository files you'll find here belong to other
+tools:
 
-### Instalado com `uv tool install` (Opção A)
+| File | Read by |
+|---|---|
+| `.mcp.json` | Claude Code, at the workspace root |
+| `.vscode/mcp.json` | VS Code's own built-in MCP support |
+
+You can keep one of those as your canonical definition and copy the server block
+into `cline_mcp_settings.json`, but nothing will pick it up automatically.
+
+---
+
+## Ready-to-paste configurations
+
+Pick the snippet matching how you installed the server.
+
+### Installed with `uv tool install` (Option A)
 
 ```json
 {
@@ -157,15 +163,15 @@ Escolha o snippet que corresponde à sua instalação e método de execução.
     "redmine": {
       "command": "mcp-redmine-rest",
       "env": {
-        "REDMINE_URL": "https://redmine.seuservidor.com",
-        "REDMINE_API_KEY": "sua_chave_api_aqui"
+        "REDMINE_URL": "https://redmine.example.com",
+        "REDMINE_API_KEY": "your_api_key_here"
       }
     }
   }
 }
 ```
 
-### Instalado com `pip` / from source, via módulo Python
+### Installed with `pip`, or from source, via the Python module
 
 ```json
 {
@@ -174,15 +180,15 @@ Escolha o snippet que corresponde à sua instalação e método de execução.
       "command": "python",
       "args": ["-m", "mcp_redmine"],
       "env": {
-        "REDMINE_URL": "https://redmine.seuservidor.com",
-        "REDMINE_API_KEY": "sua_chave_api_aqui"
+        "REDMINE_URL": "https://redmine.example.com",
+        "REDMINE_API_KEY": "your_api_key_here"
       }
     }
   }
 }
 ```
 
-### From source, usando `uv run`
+### From source, using `uv run`
 
 ```json
 {
@@ -191,25 +197,29 @@ Escolha o snippet que corresponde à sua instalação e método de execução.
       "command": "uv",
       "args": ["run", "python", "-m", "mcp_redmine"],
       "env": {
-        "REDMINE_URL": "https://redmine.seuservidor.com",
-        "REDMINE_API_KEY": "sua_chave_api_aqui"
+        "REDMINE_URL": "https://redmine.example.com",
+        "REDMINE_API_KEY": "your_api_key_here"
       }
     }
   }
 }
 ```
 
-### From source, com virtual environment (caminho absoluto)
+### From source, with a virtual environment (absolute path)
+
+Replace `/full/path/to/mcp-redmine` with the path to your clone. On Windows
+that's `C:/full/path/to/mcp-redmine/venv/Scripts/python.exe`; forward slashes
+work in JSON and save you from escaping backslashes.
 
 ```json
 {
   "mcpServers": {
     "redmine": {
-      "command": "C:/dev/repos/mcp-redmine/venv/Scripts/python.exe",
+      "command": "/full/path/to/mcp-redmine/venv/bin/python",
       "args": ["-m", "mcp_redmine"],
       "env": {
-        "REDMINE_URL": "https://redmine.seuservidor.com",
-        "REDMINE_API_KEY": "sua_chave_api_aqui"
+        "REDMINE_URL": "https://redmine.example.com",
+        "REDMINE_API_KEY": "your_api_key_here"
       }
     }
   }
@@ -218,28 +228,34 @@ Escolha o snippet que corresponde à sua instalação e método de execução.
 
 ---
 
-## Verificando se está funcionando
+## Verifying it works
 
-1. **Verifique o Output do Cline:** abra o painel *Output* do VS Code
-   (`Ctrl+Shift+U`), selecione **Cline** no dropdown. O servidor MCP deve
-   aparecer como conectado sem erros.
+1. **Check Cline's output.** Open the *Output* panel (`Ctrl+Shift+U`) and pick
+   **Cline** in the dropdown. The server should appear as connected, with no
+   errors.
 
-2. **Verifique as ferramentas:** peça algo simples ao Cline:
+2. **Check the tools reach Redmine.** Ask Cline something simple:
+
    > List my Redmine projects
-   
-   Se as ferramentas estiverem carregadas, o Cline usará `list_projects`
-   automaticamente.
 
-3. **Teste manual:** você também pode rodar o servidor diretamente no terminal
-   para confirmar que as variáveis de ambiente estão corretas:
+   If the tools loaded, Cline will reach for `list_projects` on its own. This
+   matters more than the connection status: a server configured with a bad API
+   key still connects, and only fails on the first call.
+
+3. **Test from a terminal.** You can also start the server by hand to confirm
+   the environment variables are right:
+
    ```bash
    # Windows (cmd):
-   set REDMINE_URL=https://redmine.seuservidor.com
-   set REDMINE_API_KEY=sua_chave_api_aqui
+   set REDMINE_URL=https://redmine.example.com
+   set REDMINE_API_KEY=your_api_key_here
    mcp-redmine-rest
    ```
-   Se o servidor iniciar sem erro de configuração (ficará esperando mensagens
-   MCP no stdio), a conexão está funcionando. Pressione `Ctrl+C` para sair.
+
+   The command takes no arguments — it starts the server and waits for MCP
+   messages on stdin/stdout, so nothing happening is the expected result. A
+   configuration problem would have printed an error instead. Press `Ctrl+C` to
+   stop.
 
 ---
 
@@ -247,57 +263,59 @@ Escolha o snippet que corresponde à sua instalação e método de execução.
 
 ### "REDMINE_URL and REDMINE_API_KEY must be set"
 
-As variáveis de ambiente não estão sendo passadas para o processo filho.
-Verifique:
-- O bloco `env` está corretamente dentro da configuração do servidor
-- Não há erros de sintaxe no JSON (vírgulas extras, aspas desbalanceadas)
-- No `.mcp.json`, variáveis com sintaxe `${VAR}` podem não ser expandidas pelo
-  Cline — use valores literais em vez disso
+The environment variables aren't reaching the child process. Check that:
+
+- the `env` block sits inside the server's own configuration;
+- the JSON has no syntax errors (trailing commas, unbalanced quotes);
+- you used literal values — `${VAR}`-style references are not reliably expanded.
 
 ### "No module named 'mcp.server.fastmcp'"
 
-O pacote `mcp[cli]` não está instalado. Execute:
+The `mcp[cli]` package isn't installed:
+
 ```bash
 pip install "mcp[cli]>=1.0.0,<2.0.0"
 ```
 
 ### "No module named 'mcp_redmine'"
 
-O pacote `mcp-redmine-rest` não está instalado no Python que o Cline está
-chamando.
-- Se usa `command: "python"`, confirme que `pip install mcp-redmine-rest` foi
-  executado no **mesmo** Python que está no PATH do VS Code
-- Se usa venv, confirme que o caminho do `python.exe` está correto
+The `mcp-redmine-rest` package isn't installed in the Python that Cline is
+calling.
 
-### O servidor aparece como "Disconnected"
+- With `command: "python"`, confirm `pip install mcp-redmine-rest` ran against
+  the **same** Python that's on VS Code's `PATH`.
+- With a virtual environment, confirm the path to `python.exe` is right.
 
-No painel *Output* → **Cline**, procure pela linha de erro. As causas comuns são:
-- **Caminho errado do `command`**: verifique se o executável existe
-- **Python não está no PATH**: use o caminho absoluto (ex:
-  `C:/Python310/python.exe`)
-- **Firewall bloqueando**: o servidor precisa de acesso de rede à URL do Redmine
-- **Erro 401**: chave de API inválida ou REST API não habilitada no Redmine
+### The server shows up as "Disconnected"
 
-### Cline não reconhece o `.mcp.json`
+Look for the error line in *Output* → **Cline**. The usual causes:
 
-- Confirme que o arquivo se chama exatamente `.mcp.json` (com o ponto no início)
-- O arquivo precisa estar na **raiz do workspace** aberto no VS Code
-- Recarregue a janela: `Ctrl+Shift+P` → *Developer: Reload Window*
+- **Wrong `command` path** — check the executable actually exists.
+- **Python not on the `PATH`** — use an absolute path, e.g.
+  `C:/Python310/python.exe`.
+- **Firewall** — the server process needs network access to your Redmine URL.
+- **401** — invalid API key, or the REST API is off in Redmine.
 
-### Erro 403 em ferramentas específicas
+### Cline ignores the repository's `.mcp.json`
 
-A chave de API pertence a um usuário do Redmine que não tem permissão para
-aquela operação. Use `get_role` para verificar quais permissões o papel (role)
-do usuário possui. Considere criar um usuário dedicado com as permissões exatas
-que você quer conceder ao agente.
+That's expected — see [the note above](#a-note-on-mcpjson-and-vscodemcpjson).
+Cline's MCP configuration is global; copy the server block into
+`cline_mcp_settings.json`.
+
+### 403 on specific tools
+
+The API key belongs to a Redmine user without permission for that operation.
+Use `get_role` to see what the user's role actually allows. Consider creating a
+dedicated user with exactly the permissions you want to grant the agent — see
+[SECURITY.md](SECURITY.md).
 
 ---
 
-## 73 ferramentas disponíveis
+## The 73 tools
 
-Uma vez configurado, o Cline terá acesso a todas as ferramentas do Redmine:
+Once configured, Cline has access to every Redmine tool:
 
-| Recurso | Ferramentas |
+| Resource | Tools |
 |---|---|
 | Issues | `list_issues`, `get_issue`, `create_issue`, `update_issue`, `bulk_update_issues`, `delete_issue`, `add_watcher`, `remove_watcher`, `update_journal_note` |
 | Issue relations | `list_issue_relations`, `create_issue_relation`, `delete_issue_relation`, `chain_issues` |
@@ -316,20 +334,20 @@ Uma vez configurado, o Cline terá acesso a todas as ferramentas do Redmine:
 | Search | `search`, `list_saved_queries` |
 | Metadata | `list_statuses_and_priorities`, `list_trackers`, `list_custom_fields`, `list_document_categories` |
 
-Para a referência completa de assinaturas e parâmetros, veja [docs/TOOLS.md](docs/TOOLS.md).
+For the full reference — signatures, parameters, and per-tool caveats — see
+[docs/TOOLS.md](docs/TOOLS.md).
 
 ---
 
-## Por que funciona sem adaptações?
+## Why it works with no adaptation
 
-O `mcp-redmine` foi construído sobre o **protocolo MCP padrão** (transporte
-stdio), que é o mesmo protocolo que o Cline implementa. Ele não depende de
-nenhuma API ou extensão específica do Claude Desktop. Os três pilares da
-compatibilidade são:
+This server is built on the **standard MCP protocol** over stdio, which is
+exactly what Cline implements. It depends on nothing specific to Claude Desktop.
+Three things carry that compatibility:
 
-1. **FastMCP / MCP SDK padrão** — o servidor usa `mcp[cli]>=1.0.0`, a
-   implementação oficial do protocolo MCP
-2. **Variáveis de ambiente** — o Cline suporta o bloco `env` na configuração de
-   servidores MCP, assim como o Claude Desktop
-3. **Transporte stdio** — o servidor se comunica via stdin/stdout, sem
-   dependência de WebSockets, HTTP, ou qualquer outro transporte proprietário
+1. **The official MCP SDK** — the server uses `mcp[cli]>=1.0.0`, the reference
+   implementation of the protocol.
+2. **Environment variables** — Cline supports the `env` block in an MCP server's
+   configuration, the same way Claude Desktop does.
+3. **stdio transport** — the server talks over stdin/stdout, with no WebSocket,
+   HTTP, or proprietary transport involved.
