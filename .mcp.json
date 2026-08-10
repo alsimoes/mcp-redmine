@@ -4,8 +4,8 @@
       "command": "python",
       "args": ["-m", "mcp_redmine"],
       "env": {
-        "REDMINE_URL": "http://redmine.ubuntuserver.vmw",
-        "REDMINE_API_KEY": "${REDMINE_API_KEY}",
+        "REDMINE_URL": "https://redmine.example.com",
+        "REDMINE_API_KEY": "your_api_key_here",
         "REDMINE_TIMEOUT": "15"
       }
     }
