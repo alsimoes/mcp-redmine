@@ -9,6 +9,10 @@ identifiers.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-09
+
+First stable release, prepared for submission to the Cline MCP Marketplace.
+
 ### Changed
 
 - **The distribution is now named `mcp-redmine-rest`, and the console script it
@@ -25,6 +29,35 @@ identifiers.
   The import name is unchanged: `python -m mcp_redmine` works exactly as
   before, so configurations that invoke the module rather than the console
   script need no edit.
+- Development status is now `5 - Production/Stable` (was `4 - Beta`).
+
+### Added
+
+- `llms-install.md`, an imperative installation guide for agent-driven
+  setup (prerequisites, the correct install command, required environment
+  variables, and a post-install verification call), and a **Cline** section
+  in the README alongside Claude Desktop/Code, with the
+  `cline_mcp_settings.json` block.
+- Project logo (`docs/mcp_redmine_logo.png`, 400×400 PNG), required for the
+  Cline MCP Marketplace submission.
+
+### Fixed
+
+- Removed the redundant `server.py` and `run_server.py` launchers at the
+  repository root; they duplicated `python -m mcp_redmine` and broke `ruff`
+  (`I001`/`E402`), which was turning CI red on `main`.
+- `CLINE_SETUP.md` is now in English (was Portuguese) and no longer hardcodes
+  the maintainer's local `C:/dev/repos/mcp-redmine` path.
+- The versioned `.mcp.json` example no longer leaks the maintainer's internal
+  Redmine hostname or uses `${REDMINE_API_KEY}` shell-expansion syntax that
+  Cline does not expand.
+
+### Removed
+
+- Internal working notes not relevant to a public repository:
+  `MCP_SETUP_FIXES.md` (personal debugging log), `COWORK_SETUP.md`
+  (instructions for an internal tool), and `docs/mcp-redmine-costs.xlsx`
+  (the maintainer's LLM cost spreadsheet) are no longer tracked in git.
 
 ## [0.1.0] - 2026-07-31
 
@@ -93,5 +126,6 @@ suitable for public use.
 - References to the maintainer's private Redmine hostname and the stray,
   non-functional `setup.ps1`.
 
-[Unreleased]: https://github.com/alsimoes/mcp-redmine/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/alsimoes/mcp-redmine/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/alsimoes/mcp-redmine/compare/v0.1.0...v1.0.0
 [0.1.0]: https://github.com/alsimoes/mcp-redmine/releases/tag/v0.1.0
