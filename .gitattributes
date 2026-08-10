@@ -1,0 +1,15 @@
+# Store every text file with LF in the repository, whatever the checkout OS
+# uses locally. Without this, editors on Windows silently rewrite files to
+# CRLF and they show up as fully modified with no change in content.
+* text=auto eol=lf
+
+# Office documents are ZIP containers. Git must never treat them as text:
+# no line-ending conversion (which corrupts the archive), no textual diff,
+# no merge. `binary` is shorthand for `-text -diff`.
+*.xlsx binary
+*.xlsm binary
+*.xltx binary
+*.docx binary
+*.dotx binary
+*.pptx binary
+*.potx binary
