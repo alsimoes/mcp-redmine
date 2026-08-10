@@ -182,24 +182,6 @@ Escolha o snippet que corresponde à sua instalação e método de execução.
 }
 ```
 
-### From source, usando o script `server.py` (Windows, caminho absoluto)
-
-```json
-{
-  "mcpServers": {
-    "redmine": {
-      "command": "python",
-      "args": ["C:/dev/repos/mcp-redmine/server.py"],
-      "env": {
-        "REDMINE_URL": "https://redmine.seuservidor.com",
-        "REDMINE_API_KEY": "sua_chave_api_aqui",
-        "REDMINE_TIMEOUT": "15"
-      }
-    }
-  }
-}
-```
-
 ### From source, usando `uv run`
 
 ```json
