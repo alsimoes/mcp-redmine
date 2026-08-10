@@ -48,13 +48,14 @@ the interpreter you just installed into.
 
 ## Step 2 — Collect the configuration
 
-The server reads three environment variables:
+The server reads these environment variables:
 
 | Variable | Required | Value |
 |---|---|---|
 | `REDMINE_URL` | Yes | Base URL of the Redmine instance, no trailing slash — e.g. `https://redmine.example.com` |
 | `REDMINE_API_KEY` | Yes | The user's API access key |
 | `REDMINE_TIMEOUT` | No | Per-request timeout in seconds. Defaults to 15 |
+| `REDMINE_UPLOAD_ROOTS` | No | Directories the file-upload tools may read from, separated by `os.pathsep`. **Leave unset unless the user asks for upload support** — see below |
 
 **Ask the user for `REDMINE_URL` and `REDMINE_API_KEY`. Never invent, guess, or
 carry over placeholder values** — a wrong URL fails with a network error and a
@@ -63,6 +64,13 @@ outside.
 
 Treat the API key as a password: it grants exactly the access of the Redmine
 user who owns it. Do not echo it back in chat, and do not commit it.
+
+**Do not set `REDMINE_UPLOAD_ROOTS` on your own initiative.** File uploads
+(`attach_file_to_issue`, `attach_file_to_wiki_page`, `upload_project_file`)
+are refused by default — this is a deliberate defense against prompt
+injection, not a gap to fill in during setup. Only configure it if the user
+explicitly asks for upload support, and then only to directories the user
+names themselves. See [SECURITY.md](SECURITY.md) before touching this.
 
 ## Step 3 — Write the client configuration
 

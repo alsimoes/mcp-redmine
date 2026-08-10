@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -98,6 +99,63 @@ def test_environment_wins_over_env_file(
     settings = load_settings()
 
     assert settings.api_key == "env-key"
+
+
+def test_upload_roots_default_to_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("REDMINE_URL", "https://redmine.example.com")
+    monkeypatch.setenv("REDMINE_API_KEY", "key")
+    monkeypatch.delenv("REDMINE_UPLOAD_ROOTS", raising=False)
+    settings = load_settings()
+    assert settings.upload_roots == ()
+
+
+def test_upload_roots_single_directory(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("REDMINE_URL", "https://redmine.example.com")
+    monkeypatch.setenv("REDMINE_API_KEY", "key")
+    monkeypatch.setenv("REDMINE_UPLOAD_ROOTS", str(tmp_path))
+    settings = load_settings()
+    assert settings.upload_roots == (tmp_path.resolve(),)
+
+
+def test_upload_roots_multiple_directories_separated_by_pathsep(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    root_a = tmp_path / "a"
+    root_a.mkdir()
+    root_b = tmp_path / "b"
+    root_b.mkdir()
+    monkeypatch.setenv("REDMINE_URL", "https://redmine.example.com")
+    monkeypatch.setenv("REDMINE_API_KEY", "key")
+    monkeypatch.setenv(
+        "REDMINE_UPLOAD_ROOTS", os.pathsep.join([str(root_a), str(root_b)])
+    )
+    settings = load_settings()
+    assert settings.upload_roots == (root_a.resolve(), root_b.resolve())
+
+
+def test_upload_roots_expands_user_home(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("REDMINE_URL", "https://redmine.example.com")
+    monkeypatch.setenv("REDMINE_API_KEY", "key")
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    (tmp_path / "uploads").mkdir()
+    monkeypatch.setenv("REDMINE_UPLOAD_ROOTS", os.path.join("~", "uploads"))
+    settings = load_settings()
+    assert settings.upload_roots == ((tmp_path / "uploads").resolve(),)
+
+
+def test_upload_roots_nonexistent_directory_raises(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("REDMINE_URL", "https://redmine.example.com")
+    monkeypatch.setenv("REDMINE_API_KEY", "key")
+    monkeypatch.setenv("REDMINE_UPLOAD_ROOTS", str(tmp_path / "does-not-exist"))
+    with pytest.raises(ConfigurationError):
+        load_settings()
 
 
 def test_missing_env_file_is_not_an_error(

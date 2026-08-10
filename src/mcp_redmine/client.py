@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import requests
@@ -38,6 +39,11 @@ class RedmineClient:
     def api_key(self) -> str:
         """The configured Redmine API key."""
         return self._settings.api_key
+
+    @property
+    def upload_roots(self) -> tuple[Path, ...]:
+        """Directories local file uploads are allowed from (empty = disabled)."""
+        return self._settings.upload_roots
 
     def request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
         """Call the Redmine API and return the decoded JSON body.
