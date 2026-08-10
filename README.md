@@ -44,6 +44,9 @@ installs is `mcp-redmine-rest`. The shorter `mcp-redmine` name on PyPI belongs
 to [an unrelated project](https://github.com/runekaagaard/mcp-redmine) — don't
 install that one expecting this server.
 
+If you're pointing an AI agent at this repository to do the setup for you,
+[llms-install.md](llms-install.md) is written for exactly that.
+
 ### With uv (recommended)
 
 ```bash
@@ -192,6 +195,42 @@ Confirm with:
 ```bash
 claude mcp list
 ```
+
+### Cline (VS Code)
+
+Open the MCP settings from the palette — `Ctrl+Shift+P` → **Cline: Open MCP
+Config File** — or click the gear next to "MCP Servers" in the Cline sidebar
+and choose *Configure MCP Servers*. Either one opens
+`cline_mcp_settings.json`; add the server there:
+
+```json
+{
+  "mcpServers": {
+    "redmine": {
+      "command": "mcp-redmine-rest",
+      "env": {
+        "REDMINE_URL": "https://redmine.example.com",
+        "REDMINE_API_KEY": "your_api_key_here"
+      }
+    }
+  }
+}
+```
+
+Use the palette command rather than editing the file by hand — it lives deep
+in VS Code's global storage
+(`.../User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`),
+and the path differs per platform.
+
+If `mcp-redmine-rest` is not on the `PATH` that VS Code sees, use the module
+form instead — `"command"` pointing at the interpreter that has the package
+installed, with `"args": ["-m", "mcp_redmine"]`, exactly like the Claude
+Desktop examples above.
+
+Reload the window (`Ctrl+Shift+P` → *Developer: Reload Window*) and the server
+should come up as connected under "MCP Servers". A longer walkthrough,
+covering the workspace `.mcp.json` and the Add-Server UI, is in
+[CLINE_SETUP.md](CLINE_SETUP.md).
 
 ### Other MCP clients
 
