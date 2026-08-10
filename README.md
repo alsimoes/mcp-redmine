@@ -88,21 +88,22 @@ pip install -e .
 
 ## Configuration
 
-The server reads its configuration from two environment variables:
+The server reads its configuration from environment variables:
 
 | Variable | Required | Description |
 |---|---|---|
 | `REDMINE_URL` | Yes | Base URL of your Redmine instance (no trailing slash). |
 | `REDMINE_API_KEY` | Yes | Your API access key, from My account → API access key. |
 | `REDMINE_TIMEOUT` | No | Per-request timeout in seconds. Defaults to 15. |
+| `REDMINE_UPLOAD_ROOTS` | No | Directories the file-upload tools may read from, separated by `os.pathsep` (`;` on Windows, `:` on Linux/macOS). **Unset = uploads disabled.** See [Security](#security). |
 
 ### Keeping the key out of the client configuration
 
 Values missing from the environment are read from a `.env` file, so the API
 key does not have to sit in plain text in your MCP client's configuration.
-Copy `.env.example` to `.env` in the repository root and fill it in — all
-three variables are honoured, so the client's `env` block can be dropped
-entirely:
+Copy `.env.example` to `.env` in the repository root and fill it in — every
+variable in the table above is honoured, so the client's `env` block can be
+dropped entirely:
 
 ```
 REDMINE_URL=https://redmine.example.com
@@ -370,6 +371,13 @@ See [SECURITY.md](SECURITY.md) for the full model. In short: an API key
 grants access equivalent to the user who owns it, so create a dedicated
 Redmine user with a role scoped to what you want the agent to do, and use
 that user's key — don't try to limit the agent by editing this server's code.
+
+**File uploads are disabled until you set `REDMINE_UPLOAD_ROOTS`.** The
+three tools that upload a local file (`attach_file_to_issue`,
+`attach_file_to_wiki_page`, `upload_project_file`) refuse every path by
+default, precisely because an agent can be steered by injected content
+(an issue comment, a wiki page) into uploading a file it was never meant to
+read. See [SECURITY.md](SECURITY.md#file-uploads-prompt-injection-is-the-default-threat-model).
 
 ## Contributing
 

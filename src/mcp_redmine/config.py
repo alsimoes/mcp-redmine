@@ -54,11 +54,47 @@ class Settings:
         url: Base URL of the Redmine instance, without a trailing slash.
         api_key: Redmine REST API key (My account > API access key).
         timeout: Per-request timeout in seconds.
+        upload_roots: Directories local file uploads are allowed from. Empty
+            means uploads are disabled — see `REDMINE_UPLOAD_ROOTS` in
+            SECURITY.md.
     """
 
     url: str
     api_key: str
     timeout: float = DEFAULT_TIMEOUT
+    upload_roots: tuple[Path, ...] = ()
+
+
+def _parse_upload_roots(raw: str) -> tuple[Path, ...]:
+    """Parse REDMINE_UPLOAD_ROOTS into resolved, validated directories.
+
+    Args:
+        raw: The raw environment value, entries separated by `os.pathsep`
+            (`;` on Windows, `:` on POSIX — `:` would collide with a drive
+            letter on Windows, which is why `os.pathsep` and not a literal
+            `:` is used here).
+
+    Returns:
+        The resolved directories, in the order given. Empty if `raw` has no
+        non-blank entries.
+
+    Raises:
+        ConfigurationError: If an entry does not resolve to an existing
+            directory — better to fail at startup than to silently drop a
+            root the operator expected to be active.
+    """
+    roots = []
+    for entry in raw.split(os.pathsep):
+        entry = entry.strip()
+        if not entry:
+            continue
+        resolved = Path(entry).expanduser().resolve()
+        if not resolved.is_dir():
+            raise ConfigurationError(
+                f"REDMINE_UPLOAD_ROOTS entry {entry!r} is not an existing directory."
+            )
+        roots.append(resolved)
+    return tuple(roots)
 
 
 def load_settings() -> Settings:
@@ -75,8 +111,10 @@ def load_settings() -> Settings:
         The validated settings.
 
     Raises:
-        ConfigurationError: If REDMINE_URL or REDMINE_API_KEY is missing, or
-            if REDMINE_TIMEOUT is set but is not a positive number.
+        ConfigurationError: If REDMINE_URL or REDMINE_API_KEY is missing, if
+            REDMINE_TIMEOUT is set but is not a positive number, or if
+            REDMINE_UPLOAD_ROOTS has an entry that is not an existing
+            directory.
     """
     _load_env_file()
 
@@ -102,4 +140,8 @@ def load_settings() -> Settings:
         if timeout <= 0:
             raise ConfigurationError("REDMINE_TIMEOUT must be greater than zero.")
 
-    return Settings(url=url, api_key=api_key, timeout=timeout)
+    upload_roots = _parse_upload_roots(os.environ.get("REDMINE_UPLOAD_ROOTS", ""))
+
+    return Settings(
+        url=url, api_key=api_key, timeout=timeout, upload_roots=upload_roots
+    )

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
+from dataclasses import replace
+from typing import Any
 
 import pytest
 import responses as responses_lib
@@ -17,12 +19,15 @@ API_KEY = "test-api-key"
 
 @pytest.fixture(autouse=True)
 def no_dotenv(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Point .env discovery at a path that cannot exist.
+    """Point .env discovery at a path that cannot exist, and clear REDMINE_*.
 
-    Without this, a developer's real .env at the repository root would leak
-    into the environment and mask the "missing variable" cases.
+    Without this, a developer's real .env or shell environment would leak
+    into the environment and mask the "missing variable" cases, or point
+    REDMINE_UPLOAD_ROOTS at directories that don't exist on the machine
+    running the tests.
     """
     monkeypatch.setenv("REDMINE_ENV_FILE", "/nonexistent/.env")
+    monkeypatch.delenv("REDMINE_UPLOAD_ROOTS", raising=False)
 
 
 @pytest.fixture
@@ -42,6 +47,21 @@ def client(settings: Settings) -> Iterator[RedmineClient]:
     set_client(redmine_client)
     yield redmine_client
     set_client(None)
+
+
+@pytest.fixture
+def client_factory(settings: Settings) -> Callable[..., RedmineClient]:
+    """Build extra RedmineClients sharing the fixture's URL/key.
+
+    Useful for tests that need settings the shared `client` fixture doesn't
+    have — for example a non-empty `upload_roots` — without duplicating the
+    base URL and API key.
+    """
+
+    def _factory(**overrides: Any) -> RedmineClient:
+        return RedmineClient(replace(settings, **overrides))
+
+    return _factory
 
 
 @pytest.fixture

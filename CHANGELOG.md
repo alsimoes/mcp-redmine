@@ -44,6 +44,33 @@ First stable release, prepared for submission to the Cline MCP Marketplace.
 - Project logo (`docs/mcp_redmine_logo.png`, 400×400 PNG), required for the
   Cline MCP Marketplace submission.
 
+### Security
+
+- **File uploads are now allowlist-only and disabled by default.**
+  `attach_file_to_issue`, `attach_file_to_wiki_page`, and
+  `upload_project_file` refuse every `file_path` unless
+  `REDMINE_UPLOAD_ROOTS` is configured with the directories the server may
+  read from. It's an environment variable, deliberately not a tool
+  parameter or a confirmation flag: those are things a model produces, and
+  prompt injection — an issue comment or wiki page instructing the agent to
+  attach a local file like `~/.ssh/id_rsa` — means the model isn't
+  trustworthy input for that decision. An operator-set environment
+  variable is outside the conversation's reach.
+
+  Paths are resolved (following symlinks, collapsing `..`) and checked
+  against the allowlist **before** the server even looks at whether the
+  file exists, so a path outside the allowlist can't be used to probe the
+  server's filesystem for what's there. A defense-in-depth denylist also
+  refuses common credential-file patterns (`.env*`, SSH private keys,
+  `.netrc`, `.aws/credentials`, `.kube/config`, and similar) even inside an
+  allowed directory — a heuristic, not the actual security boundary. See
+  [SECURITY.md](SECURITY.md#file-uploads-prompt-injection-is-the-default-threat-model).
+
+  This is a breaking change for the three upload tools' previous
+  no-configuration-required behavior, but it lands inside 1.0.0 rather than
+  as a 2.0.0: the package has never been published, so nobody's setup
+  breaks.
+
 ### Fixed
 
 - Removed the redundant `server.py` and `run_server.py` launchers at the
@@ -130,13 +157,15 @@ suitable for public use.
   non-functional `setup.ps1`.
 
 [Unreleased]: https://github.com/alsimoes/mcp-redmine/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/alsimoes/mcp-redmine/compare/b1523ed...v1.0.0
 [0.1.0]: https://github.com/alsimoes/mcp-redmine/tree/7003b0b
 
 <!--
-0.1.0 predates this project's first git tag, so it has no `v0.1.0` tag or
-GitHub Release to link to (none was ever published, and none is being
-created retroactively). Both links above are anchored to commit SHAs
-instead: b1523ed is the repository's first commit, and 7003b0b is the last
-commit before the codebase moved onto what shipped as 1.0.0.
+No git tag exists for either 0.1.0 or 1.0.0 yet — this repository has never
+published a release. 0.1.0's link is anchored to a commit SHA instead of a
+tag (7003b0b, the last commit before the codebase moved onto what shipped
+as 1.0.0; the repository's first commit is b1523ed). 1.0.0 has no link at
+all for now, even though the section below it is written and dated: the
+tag is being cut deliberately later, once the file-upload security policy
+below lands too. Add `[1.0.0]: .../compare/b1523ed...v1.0.0` back in the
+same commit that creates the `v1.0.0` tag.
 -->

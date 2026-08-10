@@ -285,6 +285,12 @@ empty file (Redmine rejects 0-byte uploads), and a file over 50 MB — this
 server's own limit, adjustable via `MAX_UPLOAD_BYTES` in
 `mcp_redmine/uploads.py`. The MIME type is guessed from the file extension.
 
+**`attach_file_to_issue`, `attach_file_to_wiki_page`, and
+`upload_project_file` refuse every path unless `REDMINE_UPLOAD_ROOTS` is
+configured** — uploads are disabled by default, as a defense against an
+agent being steered into uploading a sensitive local file. See
+[SECURITY.md](../SECURITY.md#file-uploads-prompt-injection-is-the-default-threat-model).
+
 ## Metadata (read-only)
 
 | Tool | Purpose |
