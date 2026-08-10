@@ -46,15 +46,30 @@ pip install mcp-redmine-rest
 ```bash
 git clone https://github.com/alsimoes/mcp-redmine.git
 cd mcp-redmine
-python -m venv venv
 
-# Windows:
-venv\Scripts\activate
-# Linux/macOS:
-source venv/bin/activate
+python3 -m venv venv && source venv/bin/activate    # Linux/Mac
 
 pip install -e .
 ```
+
+On Windows, use `py` and PowerShell rather than a Git Bash/WSL shell —
+creating or recreating the venv from a Unix-style shell on Windows overwrites
+`venv\pyvenv.cfg` with a Unix `home` path, and every subsequent launch of
+`venv\Scripts\python.exe` fails with `No Python at '/usr/bin\python.exe'` (or
+similar):
+
+```powershell
+git clone https://github.com/alsimoes/mcp-redmine.git
+cd mcp-redmine
+
+py -3 -m venv venv
+.\venv\Scripts\Activate.ps1
+
+pip install -e .
+```
+
+Using `cmd.exe` instead of PowerShell? Activate with
+`venv\Scripts\activate.bat` after the `py -3 -m venv venv` step above.
 
 ---
 
