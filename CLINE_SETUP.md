@@ -15,18 +15,23 @@ VS Code, tanto no Windows quanto em Linux/Mac.
 
 Escolha **uma** das três opções abaixo.
 
+> **Atenção ao nome do pacote.** A distribuição se chama **`mcp-redmine-rest`**,
+> e o executável instalado é `mcp-redmine-rest`. O nome curto `mcp-redmine` no
+> PyPI pertence a [outro projeto](https://github.com/runekaagaard/mcp-redmine),
+> sem relação com este — não instale aquele esperando este servidor.
+
 ### Opção A: uv tool install (recomendado)
 
 ```bash
-uv tool install mcp-redmine
+uv tool install mcp-redmine-rest
 ```
 
-Isso instala o executável `mcp-redmine` globalmente no ambiente `uv`.
+Isso instala o executável `mcp-redmine-rest` globalmente no ambiente `uv`.
 
 ### Opção B: pip
 
 ```bash
-pip install mcp-redmine
+pip install mcp-redmine-rest
 ```
 
 ### Opção C: from source
@@ -102,7 +107,7 @@ automaticamente quando você abre este repositório como workspace.
 {
   "mcpServers": {
     "redmine": {
-      "command": "mcp-redmine",
+      "command": "mcp-redmine-rest",
       "env": {
         "REDMINE_URL": "https://redmine.seuservidor.com",
         "REDMINE_API_KEY": "sua_chave_api_aqui"
@@ -131,7 +136,7 @@ automaticamente quando você abre este repositório como workspace.
 | Campo | Valor |
 |---|---|
 | Name | `redmine` |
-| Command | `mcp-redmine` (ou `python`) |
+| Command | `mcp-redmine-rest` (ou `python`) |
 | Args | (deixe vazio, ou `-m mcp_redmine` se command for `python`) |
 | Env | `REDMINE_URL=https://redmine.seuservidor.com` |
 | | `REDMINE_API_KEY=sua_chave_api_aqui` |
@@ -150,7 +155,7 @@ Escolha o snippet que corresponde à sua instalação e método de execução.
 {
   "mcpServers": {
     "redmine": {
-      "command": "mcp-redmine",
+      "command": "mcp-redmine-rest",
       "env": {
         "REDMINE_URL": "https://redmine.seuservidor.com",
         "REDMINE_API_KEY": "sua_chave_api_aqui"
@@ -171,24 +176,6 @@ Escolha o snippet que corresponde à sua instalação e método de execução.
       "env": {
         "REDMINE_URL": "https://redmine.seuservidor.com",
         "REDMINE_API_KEY": "sua_chave_api_aqui"
-      }
-    }
-  }
-}
-```
-
-### From source, usando o script `server.py` (Windows, caminho absoluto)
-
-```json
-{
-  "mcpServers": {
-    "redmine": {
-      "command": "python",
-      "args": ["C:/dev/repos/mcp-redmine/server.py"],
-      "env": {
-        "REDMINE_URL": "https://redmine.seuservidor.com",
-        "REDMINE_API_KEY": "sua_chave_api_aqui",
-        "REDMINE_TIMEOUT": "15"
       }
     }
   }
@@ -249,7 +236,7 @@ Escolha o snippet que corresponde à sua instalação e método de execução.
    # Windows (cmd):
    set REDMINE_URL=https://redmine.seuservidor.com
    set REDMINE_API_KEY=sua_chave_api_aqui
-   mcp-redmine
+   mcp-redmine-rest
    ```
    Se o servidor iniciar sem erro de configuração (ficará esperando mensagens
    MCP no stdio), a conexão está funcionando. Pressione `Ctrl+C` para sair.
@@ -276,8 +263,9 @@ pip install "mcp[cli]>=1.0.0,<2.0.0"
 
 ### "No module named 'mcp_redmine'"
 
-O pacote `mcp-redmine` não está instalado no Python que o Cline está chamando.
-- Se usa `command: "python"`, confirme que `pip install mcp-redmine` foi
+O pacote `mcp-redmine-rest` não está instalado no Python que o Cline está
+chamando.
+- Se usa `command: "python"`, confirme que `pip install mcp-redmine-rest` foi
   executado no **mesmo** Python que está no PATH do VS Code
 - Se usa venv, confirme que o caminho do `python.exe` está correto
 
