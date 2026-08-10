@@ -15,6 +15,16 @@ BASE_URL = "https://redmine.example.com"
 API_KEY = "test-api-key"
 
 
+@pytest.fixture(autouse=True)
+def no_dotenv(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Point .env discovery at a path that cannot exist.
+
+    Without this, a developer's real .env at the repository root would leak
+    into the environment and mask the "missing variable" cases.
+    """
+    monkeypatch.setenv("REDMINE_ENV_FILE", "/nonexistent/.env")
+
+
 @pytest.fixture
 def settings() -> Settings:
     """Settings pointing at a fake Redmine instance."""

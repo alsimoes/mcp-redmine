@@ -73,5 +73,15 @@ venv/Scripts/python.exe -m ruff format .
 ## Configuration
 
 `REDMINE_URL` and `REDMINE_API_KEY` are required; `REDMINE_TIMEOUT` is
-optional (default 15s). Never put real values in files inside this repo —
-use your MCP client's env config or a local, gitignored `.env`.
+optional (default 15s). Never commit real values — use your MCP client's env
+config or a local, gitignored `.env`.
+
+`load_settings()` merges a `.env` into the environment first, without
+overriding variables that are already set, so the client's `env` block wins.
+The file is looked up at the repository root, or at `REDMINE_ENV_FILE` if
+that is set. `tests/conftest.py` has an autouse fixture pointing
+`REDMINE_ENV_FILE` at a nonexistent path so a developer's real `.env` cannot
+leak into the tests.
+
+Claude Desktop builds a minimal environment for the servers it launches and
+does not pass through user or shell variables — `setx` has no effect there.

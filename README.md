@@ -88,6 +88,29 @@ The server reads its configuration from two environment variables:
 | `REDMINE_API_KEY` | Yes | Your API access key, from My account → API access key. |
 | `REDMINE_TIMEOUT` | No | Per-request timeout in seconds. Defaults to 15. |
 
+### Keeping the key out of the client configuration
+
+Values missing from the environment are read from a `.env` file, so the API
+key does not have to sit in plain text in your MCP client's configuration.
+Copy `.env.example` to `.env` in the repository root and fill it in — all
+three variables are honoured, so the client's `env` block can be dropped
+entirely:
+
+```
+REDMINE_URL=https://redmine.example.com
+REDMINE_API_KEY=your_api_key_here
+REDMINE_TIMEOUT=15
+```
+
+The file is gitignored. Variables already present in the environment always
+win, so an `env` block in your client's configuration still overrides it. To
+keep the file somewhere else, set `REDMINE_ENV_FILE` to its full path.
+
+This matters on Claude Desktop in particular: it launches MCP servers with a
+minimal environment it builds itself, so variables you export in your shell
+or set with `setx` never reach the server. Use the `env` block or a `.env`
+file.
+
 ### Claude Desktop
 
 Edit (or create) the Claude Desktop configuration file:

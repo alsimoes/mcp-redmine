@@ -4,8 +4,42 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 DEFAULT_TIMEOUT = 15.0
+
+#: Repository root, when the package is used from a source checkout
+#: (src/mcp_redmine/config.py -> src/mcp_redmine -> src -> repo root).
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _env_file_path() -> Path:
+    """Return the .env file to read.
+
+    Honours ``REDMINE_ENV_FILE`` for an explicit location; otherwise falls
+    back to a ``.env`` beside the repository root, which is where the file
+    lives in a source checkout. Installed copies have no such file, and the
+    missing path is simply ignored by the caller.
+
+    Returns:
+        The path to try, which may not exist.
+    """
+    override = os.environ.get("REDMINE_ENV_FILE", "")
+    if override:
+        return Path(override)
+    return _REPO_ROOT / ".env"
+
+
+def _load_env_file() -> None:
+    """Merge a local .env file into the process environment.
+
+    Values already present in the environment win, so an MCP client's ``env``
+    block still overrides the file. Missing files are not an error: the .env
+    is an optional convenience, not the canonical configuration.
+    """
+    load_dotenv(_env_file_path(), override=False)
 
 
 class ConfigurationError(RuntimeError):
@@ -34,6 +68,9 @@ def load_settings() -> Settings:
     package stays importable — for tests, tooling, or introspection — without
     REDMINE_URL and REDMINE_API_KEY being set.
 
+    A local .env file is merged in first, without overriding variables that
+    are already set; see `_load_env_file`.
+
     Returns:
         The validated settings.
 
@@ -41,6 +78,8 @@ def load_settings() -> Settings:
         ConfigurationError: If REDMINE_URL or REDMINE_API_KEY is missing, or
             if REDMINE_TIMEOUT is set but is not a positive number.
     """
+    _load_env_file()
+
     url = os.environ.get("REDMINE_URL", "").rstrip("/")
     api_key = os.environ.get("REDMINE_API_KEY", "")
 
