@@ -24,6 +24,10 @@ dist/
 *.key
 secrets.json
 
+# Claude Code's workspace config (read by Claude Code, not shared) — copy
+# .mcp.json.example to .mcp.json and fill in your own Redmine URL/API key.
+.mcp.json
+
 # Test, lint, and type-check caches
 .pytest_cache/
 .mypy_cache/
