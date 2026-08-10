@@ -53,5 +53,3 @@ desktop.ini
 # Logs and temporary files
 *.log
 *.xlsx
-# ...except the LLM cost ledger, which is tracked on purpose.
-!docs/mcp-redmine-costs.xlsx
