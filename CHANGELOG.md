@@ -9,6 +9,23 @@ identifiers.
 
 ## [Unreleased]
 
+### Changed
+
+- **The distribution is now named `mcp-redmine-rest`, and the console script it
+  installs is `mcp-redmine-rest`** (both were `mcp-redmine`). This is a
+  breaking change: `pip install mcp-redmine` and `uv tool install mcp-redmine`
+  no longer install this server, and any MCP client configured with
+  `"command": "mcp-redmine"` must be updated.
+
+  The reason is a name collision: `mcp-redmine` on PyPI is
+  [an unrelated project](https://github.com/runekaagaard/mcp-redmine) by a
+  different author, so the old instructions installed someone else's server —
+  and the two console scripts shadowed each other when both were installed.
+
+  The import name is unchanged: `python -m mcp_redmine` works exactly as
+  before, so configurations that invoke the module rather than the console
+  script need no edit.
+
 ## [0.1.0] - 2026-07-31
 
 First public release. This version reworks the project from a private,

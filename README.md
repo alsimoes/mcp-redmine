@@ -39,16 +39,21 @@ edit wiki pages, and administer users — all through natural conversation.
 
 ## Installation
 
+The distribution is published as **`mcp-redmine-rest`**, and the command it
+installs is `mcp-redmine-rest`. The shorter `mcp-redmine` name on PyPI belongs
+to [an unrelated project](https://github.com/runekaagaard/mcp-redmine) — don't
+install that one expecting this server.
+
 ### With uv (recommended)
 
 ```bash
-uv tool install mcp-redmine
+uv tool install mcp-redmine-rest
 ```
 
 ### With pip
 
 ```bash
-pip install mcp-redmine
+pip install mcp-redmine-rest
 ```
 
 ### From source
@@ -123,7 +128,7 @@ Edit (or create) the Claude Desktop configuration file:
 {
   "mcpServers": {
     "redmine": {
-      "command": "mcp-redmine",
+      "command": "mcp-redmine-rest",
       "env": {
         "REDMINE_URL": "https://redmine.example.com",
         "REDMINE_API_KEY": "your_api_key_here"
@@ -179,7 +184,7 @@ Redmine tools as available.
 claude mcp add redmine \
   --env REDMINE_URL=https://redmine.example.com \
   --env REDMINE_API_KEY=your_api_key_here \
-  -- mcp-redmine
+  -- mcp-redmine-rest
 ```
 
 Confirm with:
@@ -191,8 +196,8 @@ claude mcp list
 ### Other MCP clients
 
 Any client that can launch a local process and speak MCP over stdio works the
-same way: run `mcp-redmine` (or `python -m mcp_redmine`) with `REDMINE_URL`
-and `REDMINE_API_KEY` set in its environment.
+same way: run `mcp-redmine-rest` (or `python -m mcp_redmine`) with
+`REDMINE_URL` and `REDMINE_API_KEY` set in its environment.
 
 ## Run locally (optional)
 
@@ -201,7 +206,7 @@ Useful for a quick sanity check before wiring the server into a client:
 ```bash
 cp .env.example .env   # then edit .env with your values
 export $(grep -v '^#' .env | xargs)   # or use a tool like direnv
-mcp-redmine
+mcp-redmine-rest
 ```
 
 If there's no connection error, the server is ready — it waits for MCP

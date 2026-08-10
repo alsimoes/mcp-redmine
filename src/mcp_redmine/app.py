@@ -88,7 +88,7 @@ def tool(func: F) -> F:
 
 
 def main() -> None:
-    """Entry point for the ``mcp-redmine`` console script.
+    """Entry point for the ``mcp-redmine-rest`` console script.
 
     Validates configuration eagerly so a misconfigured server fails fast with
     an actionable message, instead of starting up and letting every tool call
