@@ -138,13 +138,12 @@ This writes to the same `cline_mcp_settings.json` as Method 1.
 
 **Cline does not auto-discover a workspace `.mcp.json`.** Its MCP configuration
 is global, shared across every workspace — that is why both methods above edit
-the same file. The two per-repository files you'll find here belong to other
-tools:
+the same file. The two per-repository files belong to other tools:
 
-| File | Read by |
-|---|---|
-| `.mcp.json` | Claude Code, at the workspace root |
-| `.vscode/mcp.json` | VS Code's own built-in MCP support |
+| File | Read by | Versioned? |
+|---|---|---|
+| `.mcp.json` | Claude Code, at the workspace root | No — gitignored; copy it from [`.mcp.json.example`](.mcp.json.example) and fill in your own `REDMINE_URL`/`REDMINE_API_KEY` |
+| `.vscode/mcp.json` | VS Code's own built-in MCP support | Yes — already generic, prompts you for the URL/key via VS Code's input UI |
 
 You can keep one of those as your canonical definition and copy the server block
 into `cline_mcp_settings.json`, but nothing will pick it up automatically.
@@ -296,7 +295,7 @@ Look for the error line in *Output* → **Cline**. The usual causes:
 - **Firewall** — the server process needs network access to your Redmine URL.
 - **401** — invalid API key, or the REST API is off in Redmine.
 
-### Cline ignores the repository's `.mcp.json`
+### Cline ignores the workspace's `.mcp.json`
 
 That's expected — see [the note above](#a-note-on-mcpjson-and-vscodemcpjson).
 Cline's MCP configuration is global; copy the server block into
