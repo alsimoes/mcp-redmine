@@ -30,6 +30,9 @@ First stable release, prepared for submission to the Cline MCP Marketplace.
   before, so configurations that invoke the module rather than the console
   script need no edit.
 - Development status is now `5 - Production/Stable` (was `4 - Beta`).
+- `.mcp.json` (Claude Code's per-workspace config) is no longer tracked in
+  git, even in its sanitized form — copy the new `.mcp.json.example` and fill
+  in your own `REDMINE_URL`/`REDMINE_API_KEY` to get a working local file.
 
 ### Added
 
@@ -127,5 +130,13 @@ suitable for public use.
   non-functional `setup.ps1`.
 
 [Unreleased]: https://github.com/alsimoes/mcp-redmine/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/alsimoes/mcp-redmine/compare/v0.1.0...v1.0.0
-[0.1.0]: https://github.com/alsimoes/mcp-redmine/releases/tag/v0.1.0
+[1.0.0]: https://github.com/alsimoes/mcp-redmine/compare/b1523ed...v1.0.0
+[0.1.0]: https://github.com/alsimoes/mcp-redmine/tree/7003b0b
+
+<!--
+0.1.0 predates this project's first git tag, so it has no `v0.1.0` tag or
+GitHub Release to link to (none was ever published, and none is being
+created retroactively). Both links above are anchored to commit SHAs
+instead: b1523ed is the repository's first commit, and 7003b0b is the last
+commit before the codebase moved onto what shipped as 1.0.0.
+-->
