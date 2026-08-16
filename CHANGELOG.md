@@ -9,6 +9,24 @@ identifiers.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-08-16
+
+The `v1.0.0` package was published to PyPI from a commit that predated the
+repository's rename from `alsimoes/mcp-redmine` to
+`alsimoes/mcp-redmine-rest`, so its PyPI project metadata is stuck pointing
+at the old (redirecting) URLs. This release carries no code changes, only
+metadata fixes, so those URLs are correct going forward.
+
+### Changed
+
+- `pyproject.toml`'s `[project.urls]` (Homepage, Repository, Issues,
+  Changelog) now point at `alsimoes/mcp-redmine-rest` instead of the
+  renamed-away `alsimoes/mcp-redmine`.
+- The package description (`pyproject.toml` and the `mcp_redmine` module
+  docstring) no longer implies this server is Claude-only — it now reads
+  "connects Claude, or any other MCP client, to a Redmine instance", matching
+  the README and the GitHub repository description.
+
 ## [1.0.0] - 2026-08-09
 
 First stable release, prepared for submission to the Cline MCP Marketplace.
@@ -158,5 +176,6 @@ suitable for public use.
 
 [0.1.0]: https://github.com/alsimoes/mcp-redmine-rest/tree/7003b0b
 
-[Unreleased]: https://github.com/alsimoes/mcp-redmine-rest/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/alsimoes/mcp-redmine-rest/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/alsimoes/mcp-redmine-rest/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/alsimoes/mcp-redmine-rest/compare/b1523ed...v1.0.0
