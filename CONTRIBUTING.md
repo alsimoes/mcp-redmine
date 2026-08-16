@@ -5,8 +5,8 @@ Thanks for considering a contribution to mcp-redmine.
 ## Development setup
 
 ```bash
-git clone https://github.com/alsimoes/mcp-redmine.git
-cd mcp-redmine
+git clone https://github.com/alsimoes/mcp-redmine-rest.git
+cd mcp-redmine-rest
 
 python3 -m venv venv && source venv/bin/activate    # Linux/Mac
 
@@ -18,8 +18,8 @@ Bash/WSL shell, which overwrites `venv\pyvenv.cfg` with a Unix `home` path
 and breaks `venv\Scripts\python.exe` for every later Windows launch:
 
 ```powershell
-git clone https://github.com/alsimoes/mcp-redmine.git
-cd mcp-redmine
+git clone https://github.com/alsimoes/mcp-redmine-rest.git
+cd mcp-redmine-rest
 
 py -3 -m venv venv
 .\venv\Scripts\Activate.ps1

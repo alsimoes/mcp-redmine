@@ -119,7 +119,7 @@ client with no path to your network.
 ## Reporting a vulnerability
 
 If you find a security issue in this project, please open a
-[GitHub issue](https://github.com/alsimoes/mcp-redmine/issues) marked
+[GitHub issue](https://github.com/alsimoes/mcp-redmine-rest/issues) marked
 clearly as a security report, or contact the maintainer directly if the
 issue is sensitive enough that public disclosure before a fix isn't
 appropriate. Please don't include real Redmine URLs, API keys, or other

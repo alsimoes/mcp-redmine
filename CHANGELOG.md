@@ -156,7 +156,7 @@ suitable for public use.
 - References to the maintainer's private Redmine hostname and the stray,
   non-functional `setup.ps1`.
 
-[0.1.0]: https://github.com/alsimoes/mcp-redmine/tree/7003b0b
+[0.1.0]: https://github.com/alsimoes/mcp-redmine-rest/tree/7003b0b
 
-[Unreleased]: https://github.com/alsimoes/mcp-redmine/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/alsimoes/mcp-redmine/compare/b1523ed...v1.0.0
+[Unreleased]: https://github.com/alsimoes/mcp-redmine-rest/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/alsimoes/mcp-redmine-rest/compare/b1523ed...v1.0.0
