@@ -158,18 +158,5 @@ suitable for public use.
 
 [0.1.0]: https://github.com/alsimoes/mcp-redmine/tree/7003b0b
 
-<!--
-No git tag exists for either 0.1.0 or 1.0.0 yet — this repository has never
-published a release. 0.1.0's link is anchored to a commit SHA instead of a
-tag (7003b0b, the last commit before the codebase moved onto what shipped
-as 1.0.0; the repository's first commit is b1523ed).
-
-Neither [Unreleased] nor [1.0.0] has a link right now, even though the
-[1.0.0] section above is written and dated: both would need to point at a
-`v1.0.0` tag that doesn't exist yet, and the tag is being cut deliberately
-later, once the user confirms it. Add both links back in the same commit
-that creates the `v1.0.0` tag:
-
-  [Unreleased]: https://github.com/alsimoes/mcp-redmine/compare/v1.0.0...HEAD
-  [1.0.0]: https://github.com/alsimoes/mcp-redmine/compare/b1523ed...v1.0.0
--->
+[Unreleased]: https://github.com/alsimoes/mcp-redmine/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/alsimoes/mcp-redmine/compare/b1523ed...v1.0.0
