@@ -44,8 +44,8 @@ pip install mcp-redmine-rest
 ### Option C: from source
 
 ```bash
-git clone https://github.com/alsimoes/mcp-redmine.git
-cd mcp-redmine
+git clone https://github.com/alsimoes/mcp-redmine-rest.git
+cd mcp-redmine-rest
 
 python3 -m venv venv && source venv/bin/activate    # Linux/Mac
 
@@ -59,8 +59,8 @@ creating or recreating the venv from a Unix-style shell on Windows overwrites
 similar):
 
 ```powershell
-git clone https://github.com/alsimoes/mcp-redmine.git
-cd mcp-redmine
+git clone https://github.com/alsimoes/mcp-redmine-rest.git
+cd mcp-redmine-rest
 
 py -3 -m venv venv
 .\venv\Scripts\Activate.ps1

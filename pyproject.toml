@@ -45,10 +45,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/alsimoes/mcp-redmine"
-Repository = "https://github.com/alsimoes/mcp-redmine"
-Issues = "https://github.com/alsimoes/mcp-redmine/issues"
-Changelog = "https://github.com/alsimoes/mcp-redmine/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/alsimoes/mcp-redmine-rest"
+Repository = "https://github.com/alsimoes/mcp-redmine-rest"
+Issues = "https://github.com/alsimoes/mcp-redmine-rest/issues"
+Changelog = "https://github.com/alsimoes/mcp-redmine-rest/blob/main/CHANGELOG.md"
 
 [project.scripts]
 mcp-redmine-rest = "mcp_redmine.app:main"

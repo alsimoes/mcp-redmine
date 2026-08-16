@@ -1,6 +1,6 @@
 # mcp-redmine
 
-[![CI](https://github.com/alsimoes/mcp-redmine/actions/workflows/ci.yml/badge.svg)](https://github.com/alsimoes/mcp-redmine/actions/workflows/ci.yml)
+[![CI](https://github.com/alsimoes/mcp-redmine-rest/actions/workflows/ci.yml/badge.svg)](https://github.com/alsimoes/mcp-redmine-rest/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 
@@ -62,8 +62,8 @@ pip install mcp-redmine-rest
 ### From source
 
 ```bash
-git clone https://github.com/alsimoes/mcp-redmine.git
-cd mcp-redmine
+git clone https://github.com/alsimoes/mcp-redmine-rest.git
+cd mcp-redmine-rest
 
 python3 -m venv venv && source venv/bin/activate    # Linux/Mac
 
@@ -77,8 +77,8 @@ or recreating the venv from a Unix-style shell on Windows overwrites
 similar):
 
 ```powershell
-git clone https://github.com/alsimoes/mcp-redmine.git
-cd mcp-redmine
+git clone https://github.com/alsimoes/mcp-redmine-rest.git
+cd mcp-redmine-rest
 
 py -3 -m venv venv
 .\venv\Scripts\Activate.ps1
