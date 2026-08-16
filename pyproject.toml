@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "mcp-redmine-rest"
 dynamic = ["version"]
-description = "Model Context Protocol server that connects Claude to a Redmine instance via its REST API"
+description = "Model Context Protocol server that connects Claude, or any other MCP client, to a Redmine instance via its REST API"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
