@@ -9,6 +9,17 @@ identifiers.
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-08-17
+
+### Fixed
+
+- `log_time` now resolves `project_identifier` to a numeric ID before
+  calling the Redmine API. `POST /time_entries.json` only accepts a numeric
+  `project_id`, unlike `POST /issues.json` which also accepts the string
+  identifier — passing a slug (e.g. `mcp-test`) previously failed with
+  `Error: Project is invalid`, even though every `project_identifier`
+  parameter's docstring promises it accepts either form. (#15)
+
 ## [1.0.1] - 2026-08-16
 
 The `v1.0.0` package was published to PyPI from a commit that predated the
@@ -176,6 +187,7 @@ suitable for public use.
 
 [0.1.0]: https://github.com/alsimoes/mcp-redmine-rest/tree/7003b0b
 
-[Unreleased]: https://github.com/alsimoes/mcp-redmine-rest/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/alsimoes/mcp-redmine-rest/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/alsimoes/mcp-redmine-rest/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/alsimoes/mcp-redmine-rest/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/alsimoes/mcp-redmine-rest/compare/b1523ed...v1.0.0
