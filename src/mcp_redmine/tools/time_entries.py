@@ -8,6 +8,20 @@ from mcp_redmine.app import get_client, tool
 from mcp_redmine.format import dumps
 
 
+def _resolve_project_id(project_identifier: str) -> int:
+    """Resolve a project identifier or numeric ID to a numeric ID.
+
+    Unlike /issues.json, Redmine's POST /time_entries.json only accepts a
+    numeric project_id — passing the string identifier fails with "Project
+    is invalid". Resolve it via /projects/{id}.json first, skipping the
+    extra request when the caller already passed a numeric ID.
+    """
+    if project_identifier.isdigit():
+        return int(project_identifier)
+    project = get_client().request("GET", f"/projects/{project_identifier}.json")
+    return int(project["project"]["id"])
+
+
 @tool
 def list_time_entries(
     project_identifier: str = "",
@@ -100,7 +114,7 @@ def log_time(
     if issue_id:
         entry["issue_id"] = issue_id
     if project_identifier:
-        entry["project_id"] = project_identifier
+        entry["project_id"] = _resolve_project_id(project_identifier)
     if activity_id:
         entry["activity_id"] = activity_id
 
